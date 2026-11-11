@@ -32,7 +32,7 @@ export function SettingsView({ initialSection }: { initialSection: SettingsSecti
   return (
     <>
       <PageHeader title="Settings" description="Manage your profile, preferences and security" />
-      <div className="grid items-start gap-6 lg:grid-cols-[222px_minmax(0,1fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[222px_minmax(0,1fr)]">
         <nav
           aria-label="Settings sections"
           className="flex gap-1 overflow-x-auto rounded-[20px] border border-line bg-surface p-[11px] lg:flex-col lg:overflow-visible"

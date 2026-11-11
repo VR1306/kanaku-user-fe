@@ -183,7 +183,7 @@ export function ProfileSection({ data, onSaved }: { data: SettingsData; onSaved:
         form={form}
         onSubmit={save}
         id="profile-form"
-        className="mt-8 grid gap-6 sm:grid-cols-2"
+        className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 sm:grid-cols-[repeat(2,minmax(0,1fr))]"
       >
         <FormInput
           name="name"

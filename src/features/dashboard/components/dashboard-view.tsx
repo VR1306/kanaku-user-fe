@@ -77,19 +77,19 @@ export function DashboardView({ firstName }: { firstName: string }) {
               </p>
             ) : null}
             <Reveal y={14}>
-              <div className="grid gap-6 xl:grid-cols-[542fr_373fr]">
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[542fr_373fr]">
                 <SpendHeroCard data={data} />
                 <BudgetRemainingCard data={data} />
               </div>
             </Reveal>
             <Reveal y={14} delay={0.08}>
-              <div className="grid gap-6 xl:grid-cols-[532fr_383fr]">
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[532fr_383fr]">
                 <MonthlySpendingCard data={data} />
                 <SpendingBreakdownCard data={data} />
               </div>
             </Reveal>
             <Reveal y={14} delay={0.16}>
-              <div className="grid gap-6 xl:grid-cols-[568fr_347fr]">
+              <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[568fr_347fr]">
                 <RecentTransactionsCard data={data} now={now} />
                 <div className="flex flex-col gap-6">
                   <BudgetsCard data={data} />

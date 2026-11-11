@@ -79,7 +79,7 @@ export function CategoriesView() {
               description="Create one with the form and it will show up when you add transactions."
             />
           ) : (
-            <ul className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-3">
+            <ul className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-[repeat(2,minmax(0,1fr))] 2xl:grid-cols-3">
               {shown.map((item, i) => (
                 <li key={item.id} className="min-w-0">
                   <CategoryCard

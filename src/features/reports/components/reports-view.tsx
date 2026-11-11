@@ -20,7 +20,7 @@ import { CategoryTable, InsightCard, SummaryCards, TopMethodCard } from "./repor
 function LoadingState() {
   return (
     <div aria-busy="true" aria-label="Loading report" className="flex flex-col gap-6">
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-[repeat(2,minmax(0,1fr))] xl:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-[147px] rounded-[22px]" />
         ))}
@@ -125,7 +125,7 @@ export function ReportsView() {
             </Reveal>
 
             <Reveal y={14} delay={0.16}>
-              <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_338px]">
+              <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,1fr)_338px]">
                 <CategoryTable report={data} />
                 <div className="flex flex-col gap-6">
                   <InsightCard insight={data.insight} />

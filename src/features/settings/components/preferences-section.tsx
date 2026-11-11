@@ -91,7 +91,7 @@ export function PreferencesSection({ data, onSaved }: { data: SettingsData; onSa
   return (
     <SectionShell title="Preferences" formId="preferences-form" saving={saving} status={status}>
       <form id="preferences-form" onSubmit={save} className="flex flex-col gap-8">
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 sm:grid-cols-[repeat(2,minmax(0,1fr))]">
           <SelectField id="pref-currency" label="Currency" disabled defaultValue="INR">
             <option value="INR">₹ Indian Rupee (INR)</option>
           </SelectField>

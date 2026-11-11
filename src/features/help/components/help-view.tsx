@@ -79,7 +79,7 @@ export function HelpView() {
         }
       />
 
-      <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <ul className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-[repeat(2,minmax(0,1fr))] xl:grid-cols-4">
         {HELP_TOPICS.map((t) => {
           const selected = topic === t.value;
           return (

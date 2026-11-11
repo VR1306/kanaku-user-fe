@@ -83,7 +83,12 @@ export function SecuritySection({ data, onSaved }: { data: SettingsData; onSaved
   }
   return (
     <SectionShell title="Security" formId="password-form" saving={saving} status={status}>
-      <Form form={form} onSubmit={save} id="password-form" className="grid gap-6 sm:grid-cols-2">
+      <Form
+        form={form}
+        onSubmit={save}
+        id="password-form"
+        className="grid grid-cols-[minmax(0,1fr)] gap-6 sm:grid-cols-[repeat(2,minmax(0,1fr))]"
+      >
         <FormPasswordInput
           name="currentPassword"
           label="Current password"

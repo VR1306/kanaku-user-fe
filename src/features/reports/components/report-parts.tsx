@@ -9,7 +9,7 @@ export function SummaryCards({ report }: { report: ReportData }) {
   const money = (n: number) => formatCurrency(Math.round(n), currency);
   const saved = summary.totalSaved;
   return (
-    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-[repeat(2,minmax(0,1fr))] xl:grid-cols-4">
       <div className="rounded-[22px] bg-brand p-[22px] text-on-inverse">
         <p className="text-[13px] text-accent-pale">Total spent</p>
         <p className="mt-4 font-display text-[32px] leading-tight font-bold break-words">
@@ -90,48 +90,50 @@ export function CategoryTable({ report }: { report: ReportData }) {
       {rows.length === 0 ? (
         <p className="mt-6 text-sm text-muted">No spending recorded for these two months yet.</p>
       ) : (
-        <table className="mt-5 w-full text-left">
-          <thead>
-            <tr className="text-xs font-bold tracking-[0.08em] text-muted uppercase">
-              <th scope="col" className="pb-3 font-bold">
-                Category
-              </th>
-              <th scope="col" className="pb-3 text-right font-bold">
-                {previousLabel}
-              </th>
-              <th scope="col" className="pb-3 text-right font-bold">
-                {currentLabel}
-              </th>
-              <th scope="col" className="pb-3 text-right font-bold">
-                Change
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.name} className="border-t border-line-soft">
-                <th scope="row" className="py-3.5 pr-2 text-[15px] font-semibold text-ink">
-                  <span className="flex items-center gap-3">
-                    <span
-                      aria-hidden="true"
-                      className={cn("size-3 shrink-0 rounded-[4px]", TONE_DOT[r.tone])}
-                    />
-                    {r.name}
-                  </span>
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full min-w-[320px] text-left">
+            <thead>
+              <tr className="text-xs font-bold tracking-[0.08em] text-muted uppercase">
+                <th scope="col" className="pb-3 font-bold">
+                  Category
                 </th>
-                <td className="py-3.5 pl-3 text-right text-[15px] whitespace-nowrap text-muted">
-                  {money(r.previous)}
-                </td>
-                <td className="py-3.5 pl-3 text-right font-display text-[17px] font-bold whitespace-nowrap text-ink">
-                  {money(r.current)}
-                </td>
-                <td className="py-3.5 text-right">
-                  <ChangeBadge pct={r.changePct} hasPrevious={r.previous > 0} />
-                </td>
+                <th scope="col" className="pb-3 text-right font-bold">
+                  {previousLabel}
+                </th>
+                <th scope="col" className="pb-3 text-right font-bold">
+                  {currentLabel}
+                </th>
+                <th scope="col" className="pb-3 text-right font-bold">
+                  Change
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.name} className="border-t border-line-soft">
+                  <th scope="row" className="py-3.5 pr-2 text-[15px] font-semibold text-ink">
+                    <span className="flex items-center gap-3">
+                      <span
+                        aria-hidden="true"
+                        className={cn("size-3 shrink-0 rounded-[4px]", TONE_DOT[r.tone])}
+                      />
+                      {r.name}
+                    </span>
+                  </th>
+                  <td className="py-3.5 pl-3 text-right text-[15px] whitespace-nowrap text-muted">
+                    {money(r.previous)}
+                  </td>
+                  <td className="py-3.5 pl-3 text-right font-display text-[17px] font-bold whitespace-nowrap text-ink">
+                    {money(r.current)}
+                  </td>
+                  <td className="py-3.5 text-right">
+                    <ChangeBadge pct={r.changePct} hasPrevious={r.previous > 0} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

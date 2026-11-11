@@ -103,7 +103,7 @@ export function TransactionForm({ existing, today }: TransactionFormProps) {
         <div className="mt-8 flex flex-col gap-7">
           <AmountHero />
           <CategoryTiles />
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-[repeat(2,minmax(0,1fr))]">
             <FormInput
               name="title"
               label="Description"

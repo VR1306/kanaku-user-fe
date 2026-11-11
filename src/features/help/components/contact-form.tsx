@@ -68,7 +68,7 @@ export function ContactForm({
       className="rounded-[24px] border border-line bg-surface p-6 sm:p-[29px]"
     >
       <h2 className="font-display text-xl font-bold text-ink">Contact support</h2>
-      <div className="mt-5 grid gap-5 sm:grid-cols-2">
+      <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-[repeat(2,minmax(0,1fr))]">
         <FormSelect
           name="topic"
           label="Topic"
