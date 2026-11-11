@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check:lines": "node scripts/check-file-length.mjs"
+    "check:lines": "node scripts/check-file-length.mjs",
+    "realtime:start": "tsx server/realtime.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.5",

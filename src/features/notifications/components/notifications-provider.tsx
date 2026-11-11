@@ -16,7 +16,7 @@ import { Icon } from "@/components/icons/icon";
 import { SOCKET_EVENTS } from "@/constants/notifications";
 import { TRANSITION } from "@/constants/motion";
 import { cn } from "@/utils/cn";
-import { fetchUnreadCount } from "../api";
+import { fetchRealtimeToken, fetchUnreadCount } from "../api";
 import { notificationSchema, type AppNotification } from "../schemas";
 import { NotificationIcon } from "./notification-icon";
 import { useRouter } from "next/navigation";
@@ -70,7 +70,15 @@ export function NotificationsProvider({
 
   useEffect(() => {
     if (!REALTIME_URL) return;
-    const socket = io(REALTIME_URL, { withCredentials: true, reconnectionDelayMax: 10_000 });
+    const socket = io(REALTIME_URL, {
+      reconnectionDelayMax: 10_000,
+      // A fresh short-lived token for every (re)connect, signed by the website.
+      auth: (give) => {
+        fetchRealtimeToken()
+          .then((token) => give({ token }))
+          .catch(() => give({ token: "" }));
+      },
+    });
     socket.on("connect", () => {
       setConnected(true);
       refresh(); // catch up on anything that happened while we were offline

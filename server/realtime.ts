@@ -1,8 +1,8 @@
 /**
  * Realtime server (Socket.IO). Runs next to the Next.js app: `npm run dev` starts both.
  *
- * - Authenticates every connection with the same signed `kanaku_session` cookie the website uses,
- *   then puts the socket in a private room for that user.
+ * - Authenticates every connection with a short-lived token from the website's
+ *   /api/realtime/token, then puts the socket in a private room for that user.
  * - Watches the `notifications` collection (MongoDB change stream) and pushes changes to the
  *   owner's room, so it works no matter which process or server created the notification.
  *
@@ -11,7 +11,6 @@
  */
 import { createServer } from "node:http";
 import { Server } from "socket.io";
-import { SESSION_COOKIE_NAME } from "@/constants/auth";
 import { REALTIME_DEFAULT_PORT, SOCKET_EVENTS } from "@/constants/notifications";
 import { getDb } from "@/lib/mongo";
 import { decode } from "@/lib/token";
@@ -25,11 +24,6 @@ const origins = (process.env.APP_ORIGIN || "http://localhost:3000")
 
 const room = (userId: string) => `user:${userId}`;
 
-function cookieValue(header: string | undefined, name: string): string | undefined {
-  const part = header?.split(";").find((c) => c.trim().startsWith(`${name}=`));
-  return part ? decodeURIComponent(part.trim().slice(name.length + 1)) : undefined;
-}
-
 const http = createServer((req, res) => {
   if (req.url === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" }).end('{"ok":true}');
@@ -38,18 +32,20 @@ const http = createServer((req, res) => {
   res.writeHead(404).end();
 });
 
-const io = new Server(http, {
-  cors: { origin: origins, credentials: true },
-  // Browsers can't send custom headers on a WebSocket, but they do send cookies.
-});
+const io = new Server(http, { cors: { origin: origins } });
 
+/**
+ * The website hands each browser a short-lived signed token (GET /api/realtime/token). That works
+ * even when this server is on a different domain from the website, where cookies aren't shared.
+ */
 io.use(async (socket, next) => {
   try {
-    const user = decode<{ id?: string; sid?: string }>(
-      cookieValue(socket.handshake.headers.cookie, SESSION_COOKIE_NAME),
-    );
-    if (!user?.id || !user.sid || !(await validateSession(user.sid, user.id)))
+    const token =
+      typeof socket.handshake.auth?.token === "string" ? socket.handshake.auth.token : "";
+    const user = decode<{ id?: string; sid?: string; scope?: string }>(token);
+    if (user?.scope !== "realtime" || !user.id || !user.sid)
       return next(new Error("unauthenticated"));
+    if (!(await validateSession(user.sid, user.id))) return next(new Error("unauthenticated"));
     socket.data.userId = user.id;
     next();
   } catch {

@@ -19,3 +19,9 @@ export const markNotificationRead = (id: string) =>
 
 export const markAllNotificationsRead = () =>
   apiSend("POST", `${API_ROUTES.notifications}/read-all`, z.object({ updated: z.number() }));
+
+const realtimeTokenSchema = z.object({ token: z.string() });
+
+/** A short-lived token for the Socket.IO connection (see /api/realtime/token). */
+export const fetchRealtimeToken = () =>
+  apiGet("/api/realtime/token", realtimeTokenSchema).then((r) => r.data.token);
