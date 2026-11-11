@@ -3,11 +3,7 @@ import { firstName } from "./theme";
 
 /** An absolute link into the app, for buttons in e-mails. */
 export function appUrl(path = "/"): string {
-  const origin = (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.APP_ORIGIN ||
-    "http://localhost:3000"
-  )
+  const origin = (process.env.NEXT_APP_URL || process.env.APP_ORIGIN || "http://localhost:3000")
     .split(",")[0]
     .trim();
   return `${origin.replace(/\/$/, "")}${path}`;

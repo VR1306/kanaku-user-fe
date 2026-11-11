@@ -1,7 +1,7 @@
 import { API_BASE } from "./urls";
 
 /**
- * API endpoints (Next.js route handlers under src/app/api). Prefixed with NEXT_PUBLIC_API_URL when
+ * API endpoints (Next.js route handlers under src/app/api). Prefixed with NEXT_API_URL when
  * the backend lives at its own address; relative otherwise.
  */
 export const API_ROUTES = {

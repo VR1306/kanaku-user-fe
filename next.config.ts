@@ -1,12 +1,12 @@
 import type { NextConfig } from "next";
 
 /**
- * When the API is served from its own address (NEXT_PUBLIC_API_URL) the browser calls it from the
- * website's address (NEXT_PUBLIC_APP_URL), which needs CORS with credentials (the login cookie).
+ * When the API is served from its own address (NEXT_API_URL) the browser calls it from the
+ * website's address (NEXT_APP_URL), which needs CORS with credentials (the login cookie).
  * With a single deployment there is nothing to add.
  */
-const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").trim().replace(/\/+$/, "");
-const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "");
+const appUrl = (process.env.NEXT_APP_URL ?? "").trim().replace(/\/+$/, "");
+const apiUrl = (process.env.NEXT_API_URL ?? "").trim().replace(/\/+$/, "");
 const corsHeaders =
   appUrl && apiUrl && appUrl !== apiUrl
     ? [
