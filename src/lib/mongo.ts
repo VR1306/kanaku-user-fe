@@ -14,7 +14,9 @@ function connect(): Promise<MongoClient> {
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error("MONGODB_URI is not set. Add it to .env.local (see .env.example).");
   const pending = new MongoClient(uri, {
-    serverSelectionTimeoutMS: 8000,
+    // Fail fast (and say so) when the database can't be reached, instead of hanging the page.
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 5000,
     maxPoolSize: 10,
   }).connect();
   // Don't cache a failed connection attempt.
@@ -45,9 +47,24 @@ async function ensureIndexes(db: Db) {
   ]);
 }
 
+/** The database couldn't be reached (wrong address, blocked by Atlas, no network). */
+export class DatabaseUnavailableError extends Error {
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : "Database unavailable");
+    this.name = "DatabaseUnavailableError";
+  }
+}
+
 export async function getDb(): Promise<Db> {
-  g.__kanakuMongo ??= connect();
-  const db = (await g.__kanakuMongo).db(process.env.MONGODB_DB || "kanaku");
+  let client: MongoClient;
+  try {
+    g.__kanakuMongo ??= connect();
+    client = await g.__kanakuMongo;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("MONGODB_URI is not set")) throw error;
+    throw new DatabaseUnavailableError(error);
+  }
+  const db = client.db(process.env.MONGODB_DB || "kanaku");
   g.__kanakuIndexes ??= ensureIndexes(db).catch((error) => {
     g.__kanakuIndexes = undefined;
     throw error;
