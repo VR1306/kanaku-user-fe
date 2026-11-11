@@ -17,7 +17,14 @@ import {
 import type { AuthFlow, Session, SessionUser } from "@/types/auth";
 import { decode, encode } from "./token";
 
+/**
+ * COOKIE_DOMAIN (e.g. ".example.com") lets the website and a separately hosted API on sibling
+ * subdomains (app.example.com, api.example.com) share the login cookie. Unset = this host only.
+ */
+const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+
 const baseOptions = {
+  ...(cookieDomain ? { domain: cookieDomain } : {}),
   httpOnly: true,
   sameSite: "lax" as const,
   secure: process.env.NODE_ENV === "production",
@@ -60,7 +67,11 @@ export async function getSession(): Promise<Session | null> {
 }
 
 export async function destroySession() {
-  (await cookies()).delete(SESSION_COOKIE_NAME);
+  (await cookies()).delete({
+    name: SESSION_COOKIE_NAME,
+    path: "/",
+    ...(cookieDomain ? { domain: cookieDomain } : {}),
+  });
 }
 
 export async function setFlow(flow: AuthFlow) {
@@ -73,5 +84,9 @@ export async function getFlow(): Promise<AuthFlow | null> {
 }
 
 export async function clearFlow() {
-  (await cookies()).delete(FLOW_COOKIE_NAME);
+  (await cookies()).delete({
+    name: FLOW_COOKIE_NAME,
+    path: "/",
+    ...(cookieDomain ? { domain: cookieDomain } : {}),
+  });
 }

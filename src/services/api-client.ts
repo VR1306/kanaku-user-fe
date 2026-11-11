@@ -26,6 +26,8 @@ async function request<T, M = unknown>(
   try {
     response = await fetch(url, {
       method,
+      // Send the login cookie to the API even when it is on another address (CORS must allow it).
+      credentials: "include",
       signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
       headers: {
         Accept: "application/json",

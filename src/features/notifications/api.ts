@@ -24,4 +24,4 @@ const realtimeTokenSchema = z.object({ token: z.string() });
 
 /** A short-lived token for the Socket.IO connection (see /api/realtime/token). */
 export const fetchRealtimeToken = () =>
-  apiGet("/api/realtime/token", realtimeTokenSchema).then((r) => r.data.token);
+  apiGet(API_ROUTES.realtimeToken, realtimeTokenSchema).then((r) => r.data.token);

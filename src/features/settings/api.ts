@@ -32,6 +32,7 @@ export const exportCsvUrl = `${base}/export?format=csv`;
 export async function importTransactionsCsv(text: string) {
   const response = await fetch(`${API_ROUTES.transactions}/import`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "text/csv", Accept: "application/json" },
     body: text,
   });

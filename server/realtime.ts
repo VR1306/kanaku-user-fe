@@ -17,7 +17,11 @@ import { decode } from "@/lib/token";
 import { validateSession } from "@/services/sessions-service";
 
 const port = Number(process.env.REALTIME_PORT || REALTIME_DEFAULT_PORT);
-const origins = (process.env.APP_ORIGIN || "http://localhost:3000")
+const origins = (
+  process.env.APP_ORIGIN ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "http://localhost:3000"
+)
   .split(",")
   .map((o) => o.trim())
   .filter(Boolean);
