@@ -1,12 +1,13 @@
 import { connection } from "next/server";
 import { isRazorpayConfigured } from "@/lib/razorpay";
+import { verifyMail } from "@/lib/mailer";
 import { getDb } from "@/lib/mongo";
 
 /**
  * GET /api/health : is the app wired up? Open it in a browser after deploying. It reports whether
  * the database can be reached and which settings are present (yes/no only, never the values).
  */
-export async function GET() {
+export async function GET(request: Request) {
   await connection();
   const started = Date.now();
   let database: { ok: boolean; ms: number; problem?: string } = { ok: false, ms: 0 };
@@ -30,8 +31,10 @@ export async function GET() {
     RAZORPAY: isRazorpayConfigured(),
     NEXT_PUBLIC_APP_URL: Boolean(process.env.NEXT_PUBLIC_APP_URL),
   };
+  // /api/health?mail=1 also tests the e-mail login (nothing is sent).
+  const mail = new URL(request.url).searchParams.get("mail") ? await verifyMail() : undefined;
   return Response.json(
-    { ok: database.ok, database, settings },
+    { ok: database.ok && (mail?.ok ?? true), database, settings, ...(mail ? { mail } : {}) },
     { status: database.ok ? 200 : 503, headers: { "Cache-Control": "no-store" } },
   );
 }

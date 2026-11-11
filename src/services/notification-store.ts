@@ -4,6 +4,7 @@
  * Every notification appears in the app; a few kinds are also e-mailed, subject to the user's
  * choices in Settings > Preferences.
  */
+import { after } from "next/server";
 import type { NotificationKind } from "@/constants/notifications";
 import type { EmailContent } from "@/lib/email/layout";
 import { notificationEmail } from "@/lib/email/app-templates";
@@ -75,6 +76,18 @@ async function emailNotification(userId: string, n: NewNotification) {
   }
 }
 
+/**
+ * Runs work after the response has been sent, and keeps the serverless function alive until it
+ * finishes. A bare `void promise` can be cut off on Vercel before the e-mail leaves.
+ */
+function runAfterResponse(work: () => Promise<void>) {
+  try {
+    after(work);
+  } catch {
+    void work(); // not inside a request (scripts, tests)
+  }
+}
+
 /** Creates a notification unless one with the same key already exists. Returns whether it was new. */
 export async function createNotification(
   userId: string,
@@ -95,7 +108,7 @@ export async function createNotification(
       createdAt: now,
       read: false,
     });
-    void emailNotification(userId, input);
+    runAfterResponse(() => emailNotification(userId, input));
     return true;
   } catch (error) {
     if (isDuplicateKey(error)) return false;

@@ -18,8 +18,13 @@ function smtpConfigured(): boolean {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 }
 
+/**
+ * The sender. If the whole value was pasted wrapped in quotes (easy to do in a hosting dashboard),
+ * the quotes are removed: left in, they turn the address into garbage and mail providers reject it.
+ */
 function fromAddress(): string {
-  return process.env.MAIL_FROM || "Kanaku <no-reply@localhost>";
+  const value = (process.env.MAIL_FROM || "Kanaku <no-reply@localhost>").trim();
+  return /^(["'])[\s\S]*\1$/.test(value) ? value.slice(1, -1).trim() : value;
 }
 
 let transporter: Transporter | undefined;
@@ -69,5 +74,32 @@ export async function sendMail(message: MailMessage): Promise<boolean> {
   } catch (error) {
     console.error("[mailer] send failed:", error instanceof Error ? error.message : error);
     return false;
+  }
+}
+
+/**
+ * Checks that the SMTP settings work (connects and logs in) without sending anything. Used by
+ * /api/health?mail=1 so a deployment can be checked without reading logs.
+ */
+export async function verifyMail(): Promise<{ ok: boolean; problem?: string }> {
+  if (!smtpConfigured())
+    return { ok: false, problem: "SMTP_HOST, SMTP_USER or SMTP_PASS is not set." };
+  const from = fromAddress();
+  if (!/<[^<>\s]+@[^<>\s]+>|^[^<>\s"]+@[^<>\s"]+$/.test(from)) {
+    return {
+      ok: false,
+      problem:
+        "MAIL_FROM isn't a valid sender. Use: Kanaku <you@gmail.com> (no surrounding quotes).",
+    };
+  }
+  try {
+    await getTransporter().verify();
+    return { ok: true };
+  } catch (error) {
+    const e = error as { code?: string; responseCode?: number };
+    return {
+      ok: false,
+      problem: `The mail server refused the login (${e.code ?? "error"}${e.responseCode ? ` ${e.responseCode}` : ""}). Check SMTP_USER and that SMTP_PASS is a current Gmail app password.`,
+    };
   }
 }
