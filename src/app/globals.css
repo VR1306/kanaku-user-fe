@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+/* Design tokens extracted from the Kanaku SVG references. */
+@theme {
+  --color-navy-950: #0b1220;
+  --color-navy-800: #1e40af;
+  --color-brand: #1d4ed8;
+  --color-brand-light: #3b82f6;
+  --color-brand-tint: #dbeafe;
+  --color-brand-pale: #bfdbfe;
+  --color-on-inverse: #f6f8fb;
+  --color-on-primary: #ffffff;
+  --color-on-accent: #0b1220;
+  --color-accent: #22d3ee;
+  --color-focus: var(--color-accent);
+  --color-link: #1d4ed8;
+  --color-nav-active-bg: #f6f8fb;
+  --color-nav-active-fg: #1d4ed8;
+  --color-accent-pale: #a5f3fc;
+  --color-accent-tint: #cffafe;
+  --color-accent-deep: #0e7490;
+  --color-page: #f6f8fb;
+  --color-surface: #ffffff;
+  --color-line: #e2e8f0;
+  --color-line-strong: #cbd5e1;
+  --color-line-soft: #eef2f7;
+  --color-ink: #0f172a;
+  --color-ink-2: #334155;
+  --color-muted: #64748b;
+  --color-subtle: #94a3b8;
+  --color-success: #047857;
+  --color-success-tint: #d1fae5;
+  --color-danger: lab(41.1651% 71.6251 30.3087);
+  --color-danger-tint: #ffe4e6;
+  --color-on-danger: #ffffff;
+  --color-violet: #7c3aed;
+  --color-violet-tint: #ede9fe;
+
+  --radius-control: 14px;
+  --radius-card: 28px;
+  --radius-panel: 20px;
+
+  --font-sans: var(--font-inter), sans-serif;
+  --font-display: var(--font-jakarta), sans-serif;
+
+  --spacing-sidebar: 264px;
+}
+
+/* Dark theme: values from the landing page dark palette. [data-theme] is set before first paint. */
+:root {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-navy-950: #060b16;
+  --color-brand: #2563eb;
+  --color-brand-tint: #1e3a8a;
+  --color-link: #60a5fa;
+  --color-nav-active-bg: #1e293b;
+  --color-nav-active-fg: #22d3ee;
+  --color-accent-tint: #164e63;
+  --color-accent-deep: #67e8f9;
+  --color-page: #0f172a;
+  --color-surface: #1e293b;
+  --color-line: #334155;
+  --color-line-strong: #475569;
+  --color-line-soft: #243044;
+  --color-ink: #f1f5f9;
+  --color-ink-2: #cbd5e1;
+  --color-muted: #94a3b8;
+  --color-subtle: #8493a8;
+  --color-success: #34d399;
+  --color-success-tint: #064e3b;
+  --color-danger: #f87171;
+  --color-danger-tint: #3b1219;
+  --color-on-danger: #0f172a;
+  --color-violet: #a78bfa;
+  --color-violet-tint: #2e1f5e;
+}
+
+body {
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+  background: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: none;
+}
+
+/* Scrollbars: thin, themed. The sidebar one uses the primary palette (cyan on navy). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+.scroll-primary {
+  scrollbar-color: var(--color-accent) rgb(255 255 255 / 0.06);
+}
+.scroll-primary::-webkit-scrollbar {
+  width: 8px;
+}
+.scroll-primary::-webkit-scrollbar-track {
+  background: rgb(255 255 255 / 0.06);
+  border-radius: 999px;
+}
+.scroll-primary::-webkit-scrollbar-thumb {
+  background: var(--color-accent);
+  border-radius: 999px;
+}
+.scroll-primary::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent-pale);
+}
+
+/* Tailwind v4 resets buttons to the default cursor; restore the pointer for everything clickable. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  summary,
+  select,
+  label[for],
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="submit"] {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
+/* Slide-over panel (components/ui/drawer.tsx). Layout lives here, not in utilities, so the panel
+   can never end up unpositioned. */
+dialog.drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  margin: 0;
+  padding: 0;
+  width: min(100%, 420px);
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  border: 0;
+  box-shadow: -24px 0 60px rgb(0 0 0 / 0.18);
+}
+dialog.drawer::backdrop {
+  background: rgb(11 18 32 / 0.5);
+}
+.drawer-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 2.25rem 2rem;
+  overflow-y: auto;
+}
+@media (max-width: 480px) {
+  .drawer-panel {
+    padding: 1.75rem 1.25rem;
+  }
+}
