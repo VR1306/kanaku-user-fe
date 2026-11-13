@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { ROUTES } from "@/constants/routes";
 import { LegalDocument } from "@/features/legal/components/legal-document";
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 
 /** The text is published from the Admin Portal (see services/legal-service.ts). */
 async function PrivacyContent() {
+  await connection(); // the text is cached with a clock, so render per request
   return (
     <LegalDocument
       content={await getLegal("privacy")}
