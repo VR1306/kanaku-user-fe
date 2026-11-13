@@ -1,8 +1,4 @@
-"use client";
-
-import type { ReactNode } from "react";
-import { motion, type Variants } from "framer-motion";
-import { TRANSITION } from "@/constants/motion";
+import type { CSSProperties, ReactNode } from "react";
 
 type RevealProps = {
   children: ReactNode;
@@ -13,43 +9,25 @@ type RevealProps = {
   className?: string;
 };
 
-/** Fades and slides its content into place on mount. */
+/**
+ * Fades and slides its content into place on mount. Pure CSS (see `.reveal-mount` in globals.css), so the content
+ * paints without waiting for any JavaScript: it used to start at opacity 0 and only appear after the animation
+ * library had loaded and hydrated, which delayed the Largest Contentful Paint of every page that used it.
+ */
 export function Reveal({ children, delay = 0, x = 0, y = 16, className }: RevealProps) {
+  const style = { "--rd": `${delay}s`, "--rx": `${x}px`, "--ry": `${y}px` } as CSSProperties;
   return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, x, y }}
-      animate={{ opacity: 1, x: 0, y: 0 }}
-      transition={{ ...TRANSITION, delay }}
-    >
+    <div className={`reveal-mount${className ? ` ${className}` : ""}`} style={style}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
-const container: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07, delayChildren: 0.1 } },
-};
-
-const item: Variants = {
-  hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: TRANSITION },
-};
-
-/** Parent that staggers its <StaggerItem> children in. */
+/** Parent that staggers its <StaggerItem> children in (CSS delays by position; see `.stagger` in globals.css). */
 export function Stagger({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <motion.div className={className} variants={container} initial="hidden" animate="show">
-      {children}
-    </motion.div>
-  );
+  return <div className={`stagger${className ? ` ${className}` : ""}`}>{children}</div>;
 }
 
 export function StaggerItem({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <motion.div className={className} variants={item}>
-      {children}
-    </motion.div>
-  );
+  return <div className={className}>{children}</div>;
 }

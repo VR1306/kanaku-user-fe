@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { TRANSITION } from "@/constants/motion";
 
 /** Re-mounts on every navigation, giving each page a soft fade/slide-in. */

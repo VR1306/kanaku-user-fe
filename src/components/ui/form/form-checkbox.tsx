@@ -1,7 +1,7 @@
 "use client";
 
 import type { InputHTMLAttributes, ReactNode } from "react";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { useFormField } from "./use-form-field";
 
 type FormCheckboxProps = Omit<InputHTMLAttributes<HTMLInputElement>, "name" | "id" | "type"> & {

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { Icon } from "@/components/icons/icon";
 import { EASE_OUT } from "@/constants/motion";
 import { TONE_TINT } from "@/features/dashboard/tones";

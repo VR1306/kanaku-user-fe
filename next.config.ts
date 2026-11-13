@@ -37,6 +37,8 @@ const nextConfig: NextConfig = {
     agentFeedback: true,
   },
   cacheComponents: true,
+  // React Compiler: automatic memoization of components, values and callbacks (fewer re-renders without hand-written memo).
+  reactCompiler: true,
   partialPrefetching: true,
   turbopack: {
     rules: {

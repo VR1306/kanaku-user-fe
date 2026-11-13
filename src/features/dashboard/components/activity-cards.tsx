@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { SectionCard } from "@/components/ui/section-card";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/utils/cn";

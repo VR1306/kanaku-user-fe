@@ -2,7 +2,7 @@
 
 import { FOCUS_FIELD } from "@/constants/styles";
 import type { InputHTMLAttributes, ReactNode } from "react";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { cn } from "@/utils/cn";
 
 type FieldProps = {

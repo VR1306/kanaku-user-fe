@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { EASE_OUT } from "@/constants/motion";
 import { formatCompact, formatCurrency } from "@/utils/format";
 import type { ReportData } from "../schemas";

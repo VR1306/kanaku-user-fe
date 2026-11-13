@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, type Variants } from "framer-motion";
+import { m as motion, type Variants } from "framer-motion";
 import { EASE_OUT } from "@/constants/motion";
 
 type TextRevealProps = {

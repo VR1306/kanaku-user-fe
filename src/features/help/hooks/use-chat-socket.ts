@@ -37,8 +37,14 @@ export function useChatSocket(handlers: ChatEvents, onResync: () => void) {
       },
     });
     socketRef.current = socket;
+    // The caller already loaded its data before the socket opened: only a RE-connect needs a refetch.
+    let first = true;
     socket.on("connect", () => {
       setConnected(true);
+      if (first) {
+        first = false;
+        return;
+      }
       latest.current.onResync();
     });
     socket.on("disconnect", () => setConnected(false));

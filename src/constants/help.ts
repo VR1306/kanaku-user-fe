@@ -67,4 +67,3 @@ export const ATTACHMENT_MIME_TYPES = Object.keys(ATTACHMENT_TYPES) as [
 export const ATTACHMENT_ACCEPT = "image/*,.pdf,.xlsx,.xls,.csv";
 /** Largest file that can be attached (after images are shrunk). */
 export const TICKET_ATTACHMENT_MAX_BYTES = 2_000_000;
-export const TICKET_FIRST_NUMBER = 1041;

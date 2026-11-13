@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { TRANSITION } from "@/constants/motion";
 
 export type DonutSegment = { id: string; percent: number; color: string; label: string };

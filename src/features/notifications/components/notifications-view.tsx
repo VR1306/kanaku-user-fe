@@ -2,7 +2,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { PageHeader } from "@/components/layout/page-header";
 import { FadeSwitch } from "@/components/motion/presence";
 import { Button } from "@/components/ui/button";

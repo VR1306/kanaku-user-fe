@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { Icon } from "@/components/icons/icon";
 import { TRANSITION } from "@/constants/motion";
 

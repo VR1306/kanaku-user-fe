@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 
 /** Top-of-form banner for form-level errors / success notices. */
 export function FormNotice({ tone, children }: { tone: "error" | "success"; children: string }) {

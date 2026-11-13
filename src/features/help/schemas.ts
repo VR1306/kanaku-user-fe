@@ -131,12 +131,6 @@ export const replySchema = z.object({
   attachment,
 });
 
-/** Used by the support team's tool (see /api/support/staff/...). */
-export const staffReplySchema = z.object({
-  message: z.string().trim().min(1).max(TICKET_MESSAGE_MAX),
-  status: z.enum(["open", "pending", "resolved"]).default("open"),
-});
-
 /** Is anyone available for live chat right now? */
 export const availabilitySchema = z.object({
   online: z.boolean(),

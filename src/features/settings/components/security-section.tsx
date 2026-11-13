@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m as motion } from "framer-motion";
 import { Icon } from "@/components/icons/icon";
 import { usePreferences } from "./preferences-provider";
 import { Form, FormPasswordInput } from "@/components/ui/form";

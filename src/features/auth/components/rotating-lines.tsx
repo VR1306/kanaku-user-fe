@@ -2,7 +2,7 @@
 
 import { TAGLINE_INTERVAL_MS } from "@/constants/auth";
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m as motion } from "framer-motion";
 import { EASE_OUT } from "@/constants/motion";
 import { cn } from "@/utils/cn";
 

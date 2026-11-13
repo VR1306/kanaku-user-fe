@@ -6,11 +6,17 @@ import { MotionProvider } from "@/components/motion/provider";
 import "./globals.css";
 
 // latin-ext carries the rupee sign (U+20B9); without it ₹ falls back to a system font.
-const inter = Inter({ variable: "--font-inter", subsets: ["latin", "latin-ext"] });
+// `optional`: text never waits for, or swaps to, a late web font (no render delay, no layout shift). Fonts are preloaded.
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin", "latin-ext"],
+  display: "optional",
+});
+// Variable font: one file per subset instead of one per weight.
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin", "latin-ext"],
-  weight: ["500", "600", "700"],
+  display: "optional",
 });
 
 export const metadata: Metadata = {

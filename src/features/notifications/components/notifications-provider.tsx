@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m as motion } from "framer-motion";
 import { io } from "socket.io-client";
 import { Icon } from "@/components/icons/icon";
 import { SOCKET_EVENTS } from "@/constants/notifications";
@@ -79,8 +79,14 @@ export function NotificationsProvider({
           .catch(() => give({ token: "" }));
       },
     });
+    // The server rendered the initial unread count, so the first connect needs no refetch; a reconnect does.
+    let first = true;
     socket.on("connect", () => {
       setConnected(true);
+      if (first) {
+        first = false;
+        return;
+      }
       refresh(); // catch up on anything that happened while we were offline
       setVersion((v) => v + 1);
     });

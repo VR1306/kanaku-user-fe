@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { Switch } from "@/components/ui/switch";
 import { EASE_OUT } from "@/constants/motion";
 import { describeSchedule } from "@/constants/recurring";

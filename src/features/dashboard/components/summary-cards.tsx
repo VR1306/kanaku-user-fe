@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { TRANSITION } from "@/constants/motion";
 import { formatCurrency } from "@/utils/format";
 import type { DashboardData } from "../schemas";

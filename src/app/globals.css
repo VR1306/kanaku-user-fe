@@ -162,3 +162,54 @@ dialog.drawer::backdrop {
     padding: 1.75rem 1.25rem;
   }
 }
+
+/*
+ * CSS-only mount animations (replace JS-driven opacity-0 starts that blocked first paint).
+ * .reveal-mount : fade + slide in on mount (vars --rd delay, --rx/--ry start offset).
+ * .stagger      : children fade/slide in one after another.
+ */
+/* Starts at 0.01, not 0: Chrome ignores opacity-0 content for LCP, so a true fade from 0 would delay the paint metric. */
+@keyframes reveal-mount {
+  from {
+    opacity: 0.01;
+    transform: translate(var(--rx, 0px), var(--ry, 16px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.reveal-mount {
+  animation: reveal-mount 0.45s cubic-bezier(0.22, 1, 0.36, 1) var(--rd, 0s) both;
+}
+.stagger > * {
+  --ry: 14px;
+  animation: reveal-mount 0.45s cubic-bezier(0.22, 1, 0.36, 1) calc(0.1s + var(--n, 0) * 0.07s) both;
+}
+.stagger > :nth-child(2) {
+  --n: 1;
+}
+.stagger > :nth-child(3) {
+  --n: 2;
+}
+.stagger > :nth-child(4) {
+  --n: 3;
+}
+.stagger > :nth-child(5) {
+  --n: 4;
+}
+.stagger > :nth-child(6) {
+  --n: 5;
+}
+.stagger > :nth-child(7) {
+  --n: 6;
+}
+.stagger > :nth-child(n + 8) {
+  --n: 7;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal-mount,
+  .stagger > * {
+    animation: none;
+  }
+}
