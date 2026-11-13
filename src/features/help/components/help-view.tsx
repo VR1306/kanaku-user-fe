@@ -137,7 +137,7 @@ export function HelpView() {
         )}
       </FadeSwitch>
 
-      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,614px)_minmax(0,300px)]">
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
         <div id="contact-support">
           <ContactForm key={contact.nonce} topic={contact.topic} onCreated={reload} />
         </div>

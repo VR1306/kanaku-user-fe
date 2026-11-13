@@ -1,18 +1,10 @@
-"use client";
+import type { CSSProperties, ReactNode } from "react";
 
-import type { ReactNode } from "react";
-import { m as motion } from "framer-motion";
-import { TRANSITION } from "@/constants/motion";
-
-/** Re-mounts on every navigation, giving each page a soft fade/slide-in. */
+/** Re-mounts on every navigation, giving each page a soft fade/slide-in (CSS only, so it never delays first paint). */
 export default function AppTemplate({ children }: { children: ReactNode }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={TRANSITION}
-    >
+    <div className="reveal-mount" style={{ "--ry": "10px" } as CSSProperties}>
       {children}
-    </motion.div>
+    </div>
   );
 }

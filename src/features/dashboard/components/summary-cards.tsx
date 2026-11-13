@@ -40,7 +40,7 @@ export function SpendHeroCard({ data }: CardProps) {
         ) : null}
       </div>
 
-      <dl className="mt-8 grid grid-cols-3 gap-4 border-t border-brand-light pt-5">
+      <dl className="mt-8 grid grid-cols-3 gap-2 border-t border-brand-light pt-5 sm:gap-4">
         <Stat label="Income" value={fmt(summary.income)} />
         <Stat label="Saved" value={fmt(summary.saved)} accent />
         <Stat label="Savings rate" value={`${summary.savingsRate}%`} />
@@ -51,10 +51,10 @@ export function SpendHeroCard({ data }: CardProps) {
 
 function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div>
+    <div className="min-w-0">
       <dt className="text-[13px] text-brand-pale">{label}</dt>
       <dd
-        className={`mt-1 font-display text-xl font-bold sm:text-2xl ${accent ? "text-accent" : "text-on-inverse"}`}
+        className={`mt-1 font-display text-base font-bold sm:text-2xl ${accent ? "text-accent" : "text-on-inverse"}`}
       >
         {value}
       </dd>

@@ -15,11 +15,11 @@ export function OverallCard({ data, onEdit }: { data: BudgetsOverview; onEdit: (
     timeZone: "UTC",
   }).format(new Date(data.resetsOn));
   const stat = (label: string, value: string, accent?: boolean) => (
-    <div className="min-w-0 rounded-[18px] border border-brand-light bg-navy-800 px-3.5 py-4 sm:min-w-[96px] sm:px-5">
+    <div className="min-w-0 rounded-[18px] border border-brand-light bg-navy-800 px-3 py-4 sm:min-w-[96px] sm:px-5">
       <dt className="text-[13px] text-brand-pale">{label}</dt>
       <dd
         className={cn(
-          "mt-2 font-display text-[26px] leading-none font-bold",
+          "mt-2 font-display text-lg leading-none font-bold sm:text-[26px]",
           accent ? "text-accent" : "text-on-primary",
         )}
       >
