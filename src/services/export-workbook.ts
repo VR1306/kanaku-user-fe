@@ -98,6 +98,8 @@ export async function buildWorkbook(userId: string, now = new Date()): Promise<B
       { field: "Budget alert emails", value: yesNo(prefs.emailBudgetAlerts) },
       { field: "Bill reminder emails", value: yesNo(prefs.emailBillReminders) },
       { field: "Monthly report emails", value: yesNo(prefs.emailMonthlyReport) },
+      { field: "Announcement emails", value: yesNo(prefs.emailAnnouncements) },
+      { field: "Announcement SMS", value: yesNo(prefs.smsAnnouncements) },
       { field: "Exported on", value: now.toISOString().slice(0, 10) },
     ],
   );

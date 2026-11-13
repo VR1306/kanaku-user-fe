@@ -11,6 +11,9 @@ export const notificationSchema = z.object({
   /** ISO 8601. */
   createdAt: z.string(),
   read: z.boolean(),
+  /** Announcements can carry a picture (served by this app) and a button label. */
+  image: z.object({ url: z.string(), alt: z.string() }).nullable().default(null),
+  ctaLabel: z.string().nullable().default(null),
 });
 export type AppNotification = z.infer<typeof notificationSchema>;
 

@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { type BillingInterval } from "@/constants/billing";
 import { ApiError } from "@/services/api-client";
-import { fetchQuote, startCheckout, verifyPayment } from "../api";
+import { fetchOffers, fetchQuote, startCheckout, verifyPayment } from "../api";
 import { openCheckout } from "../razorpay-checkout";
-import type { Billing, Quote } from "../schemas";
+import type { Billing, Offer, Quote } from "../schemas";
 import { OrderSummary } from "./order-summary";
 import { PlanCard } from "./plan-cards";
 
@@ -32,6 +32,10 @@ export function CheckoutPanel({
   const [interval, setInterval_] = useState<BillingInterval>("yearly");
   const [coupon, setCoupon] = useState<string>();
   const [quote, setQuote] = useState<Quote>();
+  const [offerState, setOfferState] = useState<{ interval: BillingInterval; items: Offer[] }>();
+  // Offers belong to a billing period; until the new period's list arrives show nothing (not the old period's).
+  const offers: Offer[] | undefined =
+    offerState?.interval === interval ? offerState.items : undefined;
   const [couponError, setCouponError] = useState<string>();
   const [applying, setApplying] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -39,6 +43,15 @@ export function CheckoutPanel({
 
   const sub = billing.subscription;
   const isPaid = sub?.status === "active";
+
+  // Coupons the Kanaku team lists for this billing period (managed in the admin).
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchOffers(interval, controller.signal)
+      .then(({ data }) => setOfferState({ interval, items: data.items }))
+      .catch(() => setOfferState({ interval, items: [] }));
+    return () => controller.abort();
+  }, [interval]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -138,6 +151,8 @@ export function CheckoutPanel({
           quote={quote}
           currency={billing.currency}
           couponError={couponError}
+          offers={offers}
+          intervalLabel={interval}
           applying={applying}
           onApplyCoupon={(code) => {
             setApplying(true);

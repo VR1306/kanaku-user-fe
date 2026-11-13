@@ -17,12 +17,14 @@ import { Sidebar, type SidebarUser } from "./sidebar";
 
 type AppShellProps = {
   user: SidebarUser;
+  /** Modules the customer's plan includes (menu items for others are hidden). */
+  modules?: readonly string[];
   onLogout: () => Promise<void>;
   children: ReactNode;
 };
 
 /** Authenticated layout: collapsible sidebar on desktop, slide-over drawer on small screens. */
-export function AppShell({ user: account, onLogout, children }: AppShellProps) {
+export function AppShell({ user: account, modules, onLogout, children }: AppShellProps) {
   const { unread } = useNotificationsContext();
   const user = { ...account, unreadCount: unread };
   const [open, setOpen] = useState(false);
@@ -53,7 +55,7 @@ export function AppShell({ user: account, onLogout, children }: AppShellProps) {
         )}
         style={{ width }}
       >
-        <Sidebar user={user} collapsed={collapsed} onLogout={onLogout} />
+        <Sidebar user={user} modules={modules} collapsed={collapsed} onLogout={onLogout} />
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
@@ -116,7 +118,12 @@ export function AppShell({ user: account, onLogout, children }: AppShellProps) {
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 380, damping: 38 }}
             >
-              <Sidebar user={user} onLogout={onLogout} onNavigate={() => setOpen(false)} />
+              <Sidebar
+                user={user}
+                modules={modules}
+                onLogout={onLogout}
+                onNavigate={() => setOpen(false)}
+              />
             </motion.div>
           </div>
         ) : null}

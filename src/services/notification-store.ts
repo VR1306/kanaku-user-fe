@@ -22,6 +22,10 @@ export type NotificationDoc = {
   key: string;
   createdAt: Date;
   read: boolean;
+  /** Announcements from the Admin Portal: the picture is fetched from there on demand (see the image route). */
+  announcementId?: string;
+  imageAlt?: string;
+  ctaLabel?: string;
 };
 
 export type NewNotification = {
@@ -31,6 +35,9 @@ export type NewNotification = {
   href?: string | null;
   /** Same key for the same event: a second insert is ignored. */
   key: string;
+  announcementId?: string;
+  imageAlt?: string;
+  ctaLabel?: string;
   /** A tailored e-mail (e.g. a receipt) instead of the standard notification e-mail. */
   email?: (user: { name: string; email: string }) => EmailContent;
 };
@@ -107,6 +114,9 @@ export async function createNotification(
       key: input.key,
       createdAt: now,
       read: false,
+      ...(input.announcementId ? { announcementId: input.announcementId } : {}),
+      ...(input.imageAlt ? { imageAlt: input.imageAlt } : {}),
+      ...(input.ctaLabel ? { ctaLabel: input.ctaLabel } : {}),
     });
     runAfterResponse(() => emailNotification(userId, input));
     return true;

@@ -20,6 +20,8 @@ export const settingsSchema = z.object({
     emailBudgetAlerts: z.boolean(),
     emailBillReminders: z.boolean(),
     emailMonthlyReport: z.boolean(),
+    emailAnnouncements: z.boolean(),
+    smsAnnouncements: z.boolean(),
   }),
   security: z.object({
     mfaEnabled: z.boolean(),
@@ -87,6 +89,9 @@ export const preferencesInputSchema = z.object({
   emailBudgetAlerts: z.boolean(),
   emailBillReminders: z.boolean(),
   emailMonthlyReport: z.boolean(),
+  /** Announcements from Kanaku: e-mail (on by default) and SMS (strictly opt-in). */
+  emailAnnouncements: z.boolean(),
+  smsAnnouncements: z.boolean(),
 });
 export type PreferencesInput = z.infer<typeof preferencesInputSchema>;
 

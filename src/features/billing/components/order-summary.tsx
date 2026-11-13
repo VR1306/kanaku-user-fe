@@ -5,12 +5,16 @@ import { Button } from "@/components/ui/button";
 import { FOCUS_FIELD } from "@/constants/styles";
 import { cn } from "@/utils/cn";
 import { formatCurrency } from "@/utils/format";
-import type { Quote } from "../schemas";
+import type { Offer, Quote } from "../schemas";
 
 type Props = {
   quote?: Quote;
   currency: string;
   couponError?: string;
+  /** Coupons the Kanaku team lists for checkout. */
+  offers?: Offer[];
+  /** Which billing period the offers are for, for the empty message. */
+  intervalLabel?: string;
   applying: boolean;
   /** Called with the typed code, or "" to remove the coupon. */
   onApplyCoupon: (code: string) => void;
@@ -25,6 +29,8 @@ export function OrderSummary({
   quote,
   currency,
   couponError,
+  offers,
+  intervalLabel,
   applying,
   onApplyCoupon,
   action,
@@ -104,6 +110,45 @@ export function OrderSummary({
           <p className="mt-2 text-sm text-success">{quote.coupon.label}</p>
         ) : null}
       </form>
+
+      {!quote?.coupon && offers && offers.length === 0 ? (
+        <p className="mt-4 text-[13px] text-muted">
+          No offers are available{intervalLabel ? ` for ${intervalLabel} billing` : ""} right now.
+          Have a code? Enter it above.
+        </p>
+      ) : null}
+
+      {!quote?.coupon && offers && offers.length > 0 ? (
+        <div className="mt-4">
+          <p className="mb-2 text-sm font-bold text-ink">Available offers</p>
+          <ul className="flex flex-col gap-2">
+            {offers.map((o) => (
+              <li
+                key={o.code}
+                className="flex items-center justify-between gap-3 rounded-control border border-dashed border-line-strong px-4 py-3"
+              >
+                <span className="min-w-0">
+                  <span className="block font-mono text-[15px] font-bold tracking-wide text-ink">
+                    {o.code}
+                  </span>
+                  <span className="block text-[13px] text-muted">
+                    {o.label}
+                    {o.validUntil ? ` · valid till ${o.validUntil}` : ""}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  disabled={applying}
+                  onClick={() => onApplyCoupon(o.code)}
+                  className="shrink-0 rounded-control px-3 py-2 text-sm font-bold text-link hover:bg-page disabled:opacity-50"
+                >
+                  Apply
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="mt-6 flex items-center justify-between border-t border-line-soft pt-5">
         <span className="text-base font-bold text-ink">Total today</span>

@@ -14,7 +14,10 @@ export function proxy(request: NextRequest) {
     url.searchParams.set("next", pathname + search);
     return NextResponse.redirect(url);
   }
-  return NextResponse.next();
+  // Hand the path to the (app) layout, which applies plan-based access before rendering anything.
+  const headers = new Headers(request.headers);
+  headers.set("x-pathname", pathname);
+  return NextResponse.next({ request: { headers } });
 }
 
 export const config = { matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"] };

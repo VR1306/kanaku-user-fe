@@ -5,6 +5,8 @@
 import { DEFAULT_DATE_FORMAT, type DateFormat } from "@/constants/settings";
 import type { PreferencesInput, ProfileInput, SettingsData } from "@/features/settings/schemas";
 import { getDb } from "@/lib/mongo";
+import { syncUser } from "./admin-sync";
+import { validSessions } from "./sessions-service";
 import { setPassword, verifyPassword } from "./auth-service";
 import { getPlanName } from "./billing-service";
 import { notifySecurity } from "./notification-events";
@@ -19,6 +21,10 @@ type ProfileDoc = {
   alertsEnabled?: boolean;
   emailBillReminders?: boolean;
   emailMonthlyReport?: boolean;
+  emailAnnouncements?: boolean;
+  /** SMS is opt-in: absent means no consent. */
+  smsAnnouncements?: boolean;
+  pushTokens?: string[];
 };
 type UserDoc = { _id: string; name: string; email: string; avatar?: string; mfaEnabled: boolean };
 
@@ -37,6 +43,8 @@ export function preferencesOf(profile: ProfileDoc | null): SettingsData["prefere
     emailBudgetAlerts: profile?.alertsEnabled ?? true,
     emailBillReminders: profile?.emailBillReminders ?? true,
     emailMonthlyReport: profile?.emailMonthlyReport ?? false,
+    emailAnnouncements: profile?.emailAnnouncements ?? true,
+    smsAnnouncements: profile?.smsAnnouncements ?? false,
   };
 }
 
@@ -66,14 +74,15 @@ export async function getSettings(userId: string, sid: string): Promise<Settings
 
 /** Just what the app shell needs: the photo and the preferred date format. */
 export async function getShellSettings(userId: string) {
-  const [user, profile] = await Promise.all([
+  const [user, profile, planName] = await Promise.all([
     users().then((c) => c.findOne({ _id: userId }, { projection: { avatar: 1 } })),
     profiles().then((c) => c.findOne({ _id: userId }, { projection: { dateFormat: 1 } })),
+    getPlanName(userId),
   ]);
   return {
     avatar: user?.avatar ?? null,
     dateFormat: profile?.dateFormat ?? DEFAULT_DATE_FORMAT,
-    planName: await getPlanName(userId),
+    planName,
   };
 }
 
@@ -88,6 +97,8 @@ export async function updateProfile(userId: string, input: ProfileInput): Promis
       ),
     ),
   ]);
+  validSessions.clear(); // the name shown in the app comes from the session lookup
+  syncUser(userId);
 }
 
 export async function setAvatar(userId: string, dataUrl: string | null): Promise<void> {
@@ -110,10 +121,13 @@ export async function updatePreferences(userId: string, input: PreferencesInput)
         alertsEnabled: input.emailBudgetAlerts,
         emailBillReminders: input.emailBillReminders,
         emailMonthlyReport: input.emailMonthlyReport,
+        emailAnnouncements: input.emailAnnouncements,
+        smsAnnouncements: input.smsAnnouncements,
       },
     },
     { upsert: true },
   );
+  syncUser(userId);
 }
 
 /** Changes the password and signs out every other device. */

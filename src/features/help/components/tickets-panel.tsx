@@ -49,9 +49,14 @@ export function TicketsPanel({
   loading,
   now,
   onOpen,
+  error,
+  onRetry,
 }: {
   tickets?: TicketSummary[];
   loading: boolean;
+  /** Why the list couldn't be loaded, if it couldn't. */
+  error?: string;
+  onRetry?: () => void;
   now: number;
   onOpen: (id: string) => void;
 }) {
@@ -67,6 +72,15 @@ export function TicketsPanel({
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-16 rounded-xl" />
           ))}
+        </div>
+      ) : error && !tickets ? (
+        <div role="alert" className="mt-4 rounded-2xl bg-danger-tint px-4 py-4 text-sm text-danger">
+          <p>{error}</p>
+          {onRetry ? (
+            <button type="button" onClick={onRetry} className="mt-2 font-semibold underline">
+              Try again
+            </button>
+          ) : null}
         </div>
       ) : tickets && tickets.length > 0 ? (
         <ul className="mt-2">

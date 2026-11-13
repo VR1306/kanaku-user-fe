@@ -23,6 +23,8 @@ export type SidebarUser = {
 
 type SidebarProps = {
   user: SidebarUser;
+  /** Modules the customer's plan includes; items for other modules are hidden. Undefined = show all. */
+  modules?: readonly string[];
   collapsed?: boolean;
   onNavigate?: () => void;
   /** Server action that ends the session. */
@@ -62,7 +64,7 @@ function Label({ children, collapsed }: { children: string; collapsed: boolean }
   );
 }
 
-export function Sidebar({ user, collapsed = false, onNavigate, onLogout }: SidebarProps) {
+export function Sidebar({ user, modules, collapsed = false, onNavigate, onLogout }: SidebarProps) {
   const pathname = usePathname();
   const pillId = useId(); // desktop + drawer sidebars must not share one layoutId
   const { theme, toggle } = useTheme();
@@ -93,7 +95,10 @@ export function Sidebar({ user, collapsed = false, onNavigate, onLogout }: Sideb
       </Link>
 
       <div className="scroll-primary -mr-2 min-h-0 flex-1 overflow-x-hidden overflow-y-auto pr-2 pb-3 [mask-image:linear-gradient(to_bottom,black_calc(100%-14px),transparent)]">
-        {NAV_SECTIONS.map((section) => (
+        {NAV_SECTIONS.map((section) => ({
+          ...section,
+          items: section.items.filter((i) => !i.module || !modules || modules.includes(i.module)),
+        })).map((section) => (
           <div key={section.title} className="mb-3">
             <div className="relative mb-2 h-5">
               <p

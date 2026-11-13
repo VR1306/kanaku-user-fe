@@ -2,7 +2,7 @@ import { z } from "zod";
 import { API_ROUTES } from "@/constants/api";
 import type { BillingInterval } from "@/constants/billing";
 import { apiGet, apiSend } from "@/services/api-client";
-import { billingSchema, checkoutSchema, quoteSchema } from "./schemas";
+import { billingSchema, checkoutSchema, offersSchema, quoteSchema } from "./schemas";
 
 const ok = z.object({ ok: z.literal(true) });
 const base = API_ROUTES.billing;
@@ -24,3 +24,6 @@ export const verifyPayment = (input: {
   razorpay_order_id: string;
   razorpay_signature: string;
 }) => apiSend("POST", `${base}/verify`, ok, input);
+
+export const fetchOffers = (interval: BillingInterval, signal?: AbortSignal) =>
+  apiGet(`${base}/coupons?interval=${interval}`, offersSchema, signal);

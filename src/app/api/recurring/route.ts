@@ -1,3 +1,4 @@
+import { moduleBlocked } from "@/lib/module-guard";
 import type { NextRequest } from "next/server";
 import { recurringInputSchema } from "@/features/recurring/schemas";
 import { apiError, apiOk } from "@/lib/api-response";
@@ -14,6 +15,8 @@ const unauthenticated = () => apiError(401, "unauthenticated", "Please log in to
 export async function GET() {
   const session = await getSession();
   if (!session) return unauthenticated();
+  const blocked = await moduleBlocked(session.id, "recurring");
+  if (blocked) return blocked;
   await runDueRecurring(session.id);
   return apiOk(await listRecurring(session.id), { source: "database" });
 }
@@ -23,6 +26,8 @@ export async function POST(request: NextRequest) {
   if (!isSameOrigin(request)) return apiError(403, "forbidden", "Request blocked.");
   const session = await getSession();
   if (!session) return unauthenticated();
+  const blocked = await moduleBlocked(session.id, "recurring");
+  if (blocked) return blocked;
 
   const body = recurringInputSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) {

@@ -1,17 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FOCUS_FIELD } from "@/constants/styles";
 import { usePreferences } from "@/features/settings/components/preferences-provider";
 import { cn } from "@/utils/cn";
-import { ATTACHMENT_ACCEPT } from "@/constants/help";
-import { fetchTicket, replyToTicket, resolveTicket } from "../api";
-import type { AttachmentInput, TicketDetail } from "../schemas";
-import { fileToAttachment } from "../attachment";
-import { AttachmentPreview } from "./attachment-preview";
+import { fetchTicket, markTicketRead, replyToTicket, resolveTicket } from "../api";
+import { useChatSocket } from "../hooks/use-chat-socket";
+import type { TicketDetail } from "../schemas";
 import { TicketBadge } from "./tickets-panel";
 
 /** A ticket's conversation, with a reply box. */
@@ -36,20 +34,57 @@ function Thread({ id, onChanged }: { id: string; onChanged: () => void }) {
   const [ticket, setTicket] = useState<TicketDetail>();
   const [error, setError] = useState<string>();
   const [text, setText] = useState("");
-  const [shot, setShot] = useState<AttachmentInput | null>(null);
   const [busy, setBusy] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [agentTyping, setAgentTyping] = useState(false);
+  const typingTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const lastTypingSent = useRef(0);
+  const bottom = useRef<HTMLLIElement>(null);
+
+  const load = useCallback(
+    (signal?: AbortSignal) =>
+      fetchTicket(id, signal)
+        .then((r) => {
+          setTicket(r.data);
+          // Opening the conversation marks the agent's messages as read (they see the double tick).
+          if (r.data.unread > 0 || r.data.messages.some((m) => m.from === "support" && !m.readAt))
+            void markTicketRead(id).catch(() => undefined);
+        })
+        .catch((e: unknown) => {
+          if (!signal?.aborted)
+            setError(e instanceof Error ? e.message : "Couldn't load that ticket.");
+        }),
+    [id],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchTicket(id, controller.signal)
-      .then((r) => setTicket(r.data))
-      .catch((e: unknown) => {
-        if (!controller.signal.aborted)
-          setError(e instanceof Error ? e.message : "Couldn't load that ticket.");
-      });
+    void load(controller.signal);
     return () => controller.abort();
-  }, [id]);
+  }, [load]);
+
+  const chat = useChatSocket(
+    {
+      "chat:updated": (p) => {
+        if (p.ticketId === `#${id}`) {
+          setAgentTyping(false);
+          void load();
+          onChanged();
+        }
+      },
+      "chat:typing": (p) => {
+        if (p.ticketId === `#${id}` && p.who === "agent") {
+          setAgentTyping(true);
+          clearTimeout(typingTimer.current);
+          typingTimer.current = setTimeout(() => setAgentTyping(false), 4000);
+        }
+      },
+    },
+    () => void load(), // catch up after any reconnect
+  );
+  useEffect(() => () => clearTimeout(typingTimer.current), []);
+  useEffect(() => {
+    bottom.current?.scrollIntoView({ block: "end" });
+  }, [ticket?.messages.length, agentTyping]);
 
   async function run(action: () => Promise<{ data: TicketDetail }>) {
     setBusy(true);
@@ -68,20 +103,7 @@ function Thread({ id, onChanged }: { id: string; onChanged: () => void }) {
 
   async function send() {
     if (!text.trim()) return;
-    if (await run(() => replyToTicket(id, text, shot))) {
-      setText("");
-      setShot(null);
-    }
-  }
-
-  async function attach(file: File | undefined) {
-    if (fileRef.current) fileRef.current.value = "";
-    if (!file) return;
-    try {
-      setShot(await fileToAttachment(file));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't attach that image.");
-    }
+    if (await run(() => replyToTicket(id, text, null))) setText("");
   }
 
   if (error && !ticket)
@@ -99,6 +121,18 @@ function Thread({ id, onChanged }: { id: string; onChanged: () => void }) {
           <p className="text-sm text-muted">
             #{ticket.number} · opened {formatDate(ticket.createdAt)}
           </p>
+          {ticket.agent ? (
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-ink">
+              <span
+                aria-hidden="true"
+                className={`inline-block size-2 rounded-full ${ticket.agent.online ? "bg-success" : "bg-subtle"}`}
+              />
+              Chatting with <b>{ticket.agent.name}</b>
+              <span className="text-muted">· {ticket.agent.online ? "online" : "offline"}</span>
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-muted">Waiting for an agent to pick this up</p>
+          )}
           <h3 className="mt-1 font-display text-xl leading-tight font-bold break-words text-ink">
             {ticket.subject}
           </h3>
@@ -119,57 +153,77 @@ function Thread({ id, onChanged }: { id: string; onChanged: () => void }) {
               )}
             >
               <p className="mb-1 text-xs font-bold text-muted">
-                {m.from === "user" ? "You" : "Kanaku support"} · {formatDate(m.at)}
+                {m.from === "user"
+                  ? "You"
+                  : m.author
+                    ? `${m.author} · Kanaku support`
+                    : "Kanaku support"}{" "}
+                · {formatDate(m.at)}
               </p>
               <p className="break-words whitespace-pre-wrap">{m.text}</p>
-              {m.attachment ? (
-                <AttachmentPreview attachment={m.attachment} className="mt-2" />
+              {m.from === "user" ? (
+                <p
+                  className="mt-1 text-right text-[11px] text-muted"
+                  aria-label={m.readAt ? "Read" : m.deliveredAt ? "Delivered" : "Sent"}
+                >
+                  {m.readAt ? "✓✓ Read" : m.deliveredAt ? "✓✓ Delivered" : "✓ Sent"}
+                </p>
               ) : null}
             </div>
           </li>
         ))}
-      </ol>
-
-      <div className="mt-auto pt-6">
-        {error ? (
-          <p role="alert" className="mb-3 text-sm text-danger">
-            {error}
-          </p>
+        {agentTyping ? (
+          <li className="text-xs text-muted" aria-live="polite">
+            Kanaku support is typing…
+          </li>
         ) : null}
-        <label htmlFor="ticket-reply" className="mb-2 block text-sm font-semibold text-ink">
-          {ticket.status === "resolved" ? "Reopen with a reply" : "Reply"}
-        </label>
-        <textarea
-          id="ticket-reply"
-          rows={3}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Write your reply"
-          className={cn(
-            "w-full resize-y rounded-control border border-line-strong bg-surface px-4 py-3 text-[15px] text-ink placeholder:text-subtle",
-            FOCUS_FIELD,
-          )}
-        />
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <input
-              ref={fileRef}
-              type="file"
-              accept={ATTACHMENT_ACCEPT}
-              className="sr-only"
-              aria-label="Choose a file to attach"
-              onChange={(e) => void attach(e.target.files?.[0])}
-            />
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="text-sm font-semibold text-link hover:underline"
-            >
-              {shot ? "Change file" : "+ Attach file"}
-            </button>
-          </div>
-          <div className="flex gap-2">
-            {ticket.status !== "resolved" ? (
+        <li ref={bottom} aria-hidden="true" />
+      </ol>
+      {!chat.connected && process.env.NEXT_PUBLIC_CHAT_URL ? (
+        <p className="mt-2 text-xs text-muted">Reconnecting to live chat…</p>
+      ) : null}
+
+      {ticket.status === "resolved" ? (
+        <div
+          role="status"
+          className="mt-auto rounded-2xl border border-line bg-page px-5 py-4 pt-4 text-[15px] text-muted"
+        >
+          <p className="font-semibold text-ink">This ticket is resolved</p>
+          <p className="mt-1">
+            Replies are closed. If you still need help, close this and send a new message from
+            &ldquo;Contact support&rdquo;.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-auto pt-6">
+          {error ? (
+            <p role="alert" className="mb-3 text-sm text-danger">
+              {error}
+            </p>
+          ) : null}
+          <label htmlFor="ticket-reply" className="mb-2 block text-sm font-semibold text-ink">
+            Reply
+          </label>
+          <textarea
+            id="ticket-reply"
+            rows={3}
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              if (Date.now() - lastTypingSent.current > 2000) {
+                lastTypingSent.current = Date.now();
+                chat.typing(id);
+              }
+            }}
+            placeholder="Write your reply"
+            className={cn(
+              "w-full resize-y rounded-control border border-line-strong bg-surface px-4 py-3 text-[15px] text-ink placeholder:text-subtle",
+              FOCUS_FIELD,
+            )}
+          />
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <span />
+            <div className="flex gap-2">
               <Button
                 variant="outline"
                 className="h-11"
@@ -178,21 +232,18 @@ function Thread({ id, onChanged }: { id: string; onChanged: () => void }) {
               >
                 Mark resolved
               </Button>
-            ) : null}
-            <Button
-              className="h-11"
-              loading={busy}
-              disabled={!text.trim()}
-              onClick={() => void send()}
-            >
-              Send reply
-            </Button>
+              <Button
+                className="h-11"
+                loading={busy}
+                disabled={!text.trim()}
+                onClick={() => void send()}
+              >
+                Send reply
+              </Button>
+            </div>
           </div>
         </div>
-        {shot ? (
-          <AttachmentPreview attachment={shot} onRemove={() => setShot(null)} className="mt-3" />
-        ) : null}
-      </div>
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { moduleBlocked } from "@/lib/module-guard";
 import type { NextRequest } from "next/server";
 import { notificationsQuerySchema } from "@/features/notifications/schemas";
 import { apiError, apiOk } from "@/lib/api-response";
@@ -8,6 +9,8 @@ import { listNotifications } from "@/services/notifications-service";
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) return apiError(401, "unauthenticated", "Please log in to continue.");
+  const blocked = await moduleBlocked(session.id, "notifications");
+  if (blocked) return blocked;
   const parsed = notificationsQuerySchema.safeParse({
     filter: request.nextUrl.searchParams.get("filter") ?? undefined,
   });

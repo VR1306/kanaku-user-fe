@@ -16,7 +16,9 @@ export async function GET(request: NextRequest) {
   });
   if (!parsed.success) return apiError(400, "invalid_query", "Choose monthly or yearly billing.");
   try {
-    return apiOk(await getQuote(parsed.data.interval, parsed.data.coupon), { source: "database" });
+    return apiOk(await getQuote(parsed.data.interval, parsed.data.coupon, session.id), {
+      source: "database",
+    });
   } catch (error) {
     return billingFailure(error);
   }

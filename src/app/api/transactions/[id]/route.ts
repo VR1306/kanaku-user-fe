@@ -1,3 +1,4 @@
+import { moduleBlocked } from "@/lib/module-guard";
 import type { NextRequest } from "next/server";
 import { transactionInputSchema } from "@/features/transactions/schemas";
 import { apiError, apiOk } from "@/lib/api-response";
@@ -18,6 +19,8 @@ const unauthenticated = () => apiError(401, "unauthenticated", "Please log in to
 export async function GET(_req: NextRequest, ctx: RouteContext<"/api/transactions/[id]">) {
   const session = await getSession();
   if (!session) return unauthenticated();
+  const blocked = await moduleBlocked(session.id, "transactions");
+  if (blocked) return blocked;
   const { id } = await ctx.params;
   const found = await getTransaction(session.id, id);
   return found ? apiOk(found, { source: "database" }) : notFound();
@@ -27,6 +30,8 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/transa
   if (!isSameOrigin(request)) return apiError(403, "forbidden", "Request blocked.");
   const session = await getSession();
   if (!session) return unauthenticated();
+  const blocked = await moduleBlocked(session.id, "transactions");
+  if (blocked) return blocked;
 
   const body = transactionInputSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) {
@@ -51,6 +56,8 @@ export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/trans
   if (!isSameOrigin(request)) return apiError(403, "forbidden", "Request blocked.");
   const session = await getSession();
   if (!session) return unauthenticated();
+  const blocked = await moduleBlocked(session.id, "transactions");
+  if (blocked) return blocked;
   const { id } = await ctx.params;
   const existing = await getTransaction(session.id, id);
   if ((await deleteTransactions(session.id, [id])) === 0) return notFound();

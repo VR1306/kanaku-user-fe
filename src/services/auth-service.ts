@@ -7,6 +7,7 @@ import { CODE_LENGTH, CODE_TTL_MS, MFA_LOCK_MS, MFA_MAX_ATTEMPTS } from "@/const
 import { randomBytes, randomInt, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { decrypt, encrypt, hashCode } from "@/lib/crypto";
 import { getDb, isDuplicateKey } from "@/lib/mongo";
+import { syncUser } from "./admin-sync";
 import { buildOtpauthUri, generateSecret, verifyTotp } from "@/lib/totp";
 import type { CodePurpose, ServiceResult, SessionUser } from "@/types/auth";
 
@@ -126,6 +127,7 @@ export async function verifyEmail(
   const problem = await consumeCode(email, "verify", code);
   if (problem) return fail(problem, "code");
   await users.updateOne({ _id: user._id }, { $set: { verified: true } });
+  syncUser(user._id); // the Admin Portal learns about the new, verified user
   return { ok: true, data: toUser(user) };
 }
 

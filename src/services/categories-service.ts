@@ -1,8 +1,9 @@
 /**
- * Categories backed by MongoDB (collection: categories). Every user gets the default categories
- * the first time they are needed and can then add, recolour, rename and delete their own.
- * Transactions, budgets and recurring payments refer to a category by name; renaming or deleting
- * one moves those references along.
+ * Categories are owned by the Admin Portal: this app reads the admin's enabled categories and users
+ * cannot create, rename, recolour or delete them (the API refuses). Users keep their own monthly
+ * budget per category. Transactions, budgets and recurring payments refer to a category by name.
+ * If the Admin Portal is unreachable the last good copy is served; if none was ever loaded, the
+ * built-in starter set is used so the app stays usable.
  */
 import { FALLBACK_CATEGORY } from "@/constants/categories";
 import {
@@ -10,69 +11,52 @@ import {
   INCOME_CATEGORIES,
   type TransactionType,
 } from "@/constants/transactions";
-import type { CategoryInput, CategoryItem } from "@/features/categories/schemas";
+import type { CategoryItem } from "@/features/categories/schemas";
 import type { Tone } from "@/features/transactions/schemas";
-import { getDb, isDuplicateKey } from "@/lib/mongo";
+import { adminFetch, cachedFetch } from "@/lib/admin-api";
+import { getDb } from "@/lib/mongo";
+import { budgetLimitReached } from "./entitlements-service";
 import { randomUUID } from "node:crypto";
 
-type CategoryDoc = {
-  _id: string;
-  userId: string;
-  name: string;
-  /** Lowercased name: unique per user. */
-  nameKey: string;
-  type: TransactionType;
-  tone: Tone;
-  order: number;
-  createdAt: Date;
+export type AdminCategory = { id: string; name: string; type: TransactionType; tone: Tone };
+
+const COLOUR_TONE: Record<string, Tone> = {
+  cyan: "accent",
+  blue: "brand",
+  rose: "danger",
+  green: "success",
+  violet: "violet",
+  amber: "accent",
+  slate: "slate",
 };
-
-const g = globalThis as unknown as { __kanakuCategoriesSeeded?: Set<string> };
-const seeded = () => (g.__kanakuCategoriesSeeded ??= new Set());
-
-const keyOf = (name: string) => name.trim().toLowerCase();
 const round = (n: number) => Math.round(n * 100) / 100;
 
-async function categories() {
-  return (await getDb()).collection<CategoryDoc>("categories");
-}
+const builtIn = (): AdminCategory[] => [
+  ...EXPENSE_CATEGORIES.map((c) => ({ ...c, id: `builtin:${c.name}`, type: "expense" as const })),
+  ...INCOME_CATEGORIES.map((c) => ({ ...c, id: `builtin:${c.name}`, type: "income" as const })),
+];
 
-/** Creates the default categories for a user who has none yet. */
-export async function ensureDefaultCategories(userId: string): Promise<void> {
-  if (seeded().has(userId)) return;
-  const col = await categories();
-  if ((await col.countDocuments({ userId }, { limit: 1 })) === 0) {
-    const now = new Date();
-    const defaults = [
-      ...EXPENSE_CATEGORIES.map((c) => ({ ...c, type: "expense" as const })),
-      ...INCOME_CATEGORIES.map((c) => ({ ...c, type: "income" as const })),
-    ];
-    await col
-      .insertMany(
-        defaults.map((c, order) => ({
-          _id: randomUUID(),
-          userId,
-          name: c.name,
-          nameKey: keyOf(c.name),
-          type: c.type,
-          tone: c.tone,
-          order,
-          createdAt: now,
-        })),
-        { ordered: false },
-      )
-      .catch((error) => {
-        if (!isDuplicateKey(error) && (error as { code?: number }).code !== 65) throw error;
-      });
-  }
-  seeded().add(userId);
-}
+const adminCategories = cachedFetch<AdminCategory[]>(
+  30_000,
+  async () => {
+    const rows = await adminFetch<
+      Array<{ id: string; name: string; kind: TransactionType; color: string }>
+    >("/api/v1/public/categories");
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      type: r.kind,
+      tone: COLOUR_TONE[r.color] ?? "slate",
+    }));
+  },
+  builtIn,
+);
 
-/** Name -> tone for everything the user has. Unknown names fall back to "slate" at the call site. */
-export async function toneMap(userId: string): Promise<Record<string, Tone>> {
-  await ensureDefaultCategories(userId);
-  const docs = await (await categories()).find({ userId }).toArray();
-  return Object.fromEntries(docs.map((d) => [d.name, d.tone]));
+/** Name -> tone for everything the admin offers. Unknown names fall back to "slate" at the call site. */
+// The user id is accepted so callers needn't change; categories are the same for everyone.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function toneMap(_userId?: string): Promise<Record<string, Tone>> {
+  return Object.fromEntries((await adminCategories()).map((c) => [c.name, c.tone]));
 }
 
 export async function toneOf(userId: string, name: string): Promise<Tone> {
@@ -80,23 +64,21 @@ export async function toneOf(userId: string, name: string): Promise<Tone> {
 }
 
 export async function categoryExists(
-  userId: string,
+  _userId: string,
   type: TransactionType,
   name: string,
 ): Promise<boolean> {
-  await ensureDefaultCategories(userId);
-  return (await (await categories()).countDocuments({ userId, type, name }, { limit: 1 })) > 0;
+  return (await adminCategories()).some((c) => c.type === type && c.name === name);
 }
 
 /** Categories with this month's activity and the budget, in display order. */
 export async function listCategories(userId: string, now = new Date()): Promise<CategoryItem[]> {
-  await ensureDefaultCategories(userId);
   const db = await getDb();
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
   const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
 
   const [docs, stats, budgets] = await Promise.all([
-    categories().then((c) => c.find({ userId }).sort({ order: 1, createdAt: 1 }).toArray()),
+    adminCategories(),
     db
       .collection("transactions")
       .aggregate<{ _id: string; count: number; total: number }>([
@@ -111,7 +93,7 @@ export async function listCategories(userId: string, now = new Date()): Promise<
   const fallbacks: string[] = Object.values(FALLBACK_CATEGORY);
 
   return docs.map((d) => ({
-    id: d._id,
+    id: d.id,
     name: d.name,
     type: d.type,
     tone: d.tone,
@@ -123,7 +105,7 @@ export async function listCategories(userId: string, now = new Date()): Promise<
 }
 
 export type CategoryResult<T> =
-  { ok: true; value: T } | { ok: false; code: "not_found" | "duplicate" | "protected" };
+  { ok: true; value: T } | { ok: false; code: "not_found" | "plan_limit" };
 
 async function setBudget(userId: string, name: string, budget: number | null) {
   const col = (await getDb()).collection<{
@@ -144,123 +126,22 @@ async function setBudget(userId: string, name: string, budget: number | null) {
   );
 }
 
-export async function createCategory(
+/** The only thing a user may change on a category: their own monthly budget (expense categories). */
+export async function setCategoryBudget(
   userId: string,
-  input: CategoryInput,
+  id: string,
+  budget: number | null,
 ): Promise<CategoryResult<{ id: string }>> {
-  await ensureDefaultCategories(userId);
-  const col = await categories();
-  const last = await col.find({ userId }).sort({ order: -1 }).limit(1).toArray();
-  const id = randomUUID();
-  try {
-    await col.insertOne({
-      _id: id,
-      userId,
-      name: input.name,
-      nameKey: keyOf(input.name),
-      type: input.type,
-      tone: input.tone,
-      order: (last[0]?.order ?? 0) + 1,
-      createdAt: new Date(),
-    });
-  } catch (error) {
-    if (isDuplicateKey(error)) return { ok: false, code: "duplicate" };
-    throw error;
-  }
-  if (input.type === "expense") await setBudget(userId, input.name, input.budget);
+  const found = (await adminCategories()).find((c) => c.id === id);
+  if (!found) return { ok: false, code: "not_found" };
+  // A new budget counts against the plan's allowance (changing or removing an existing one never does).
+  if (found.type === "expense" && budget !== null && (await budgetLimitReached(userId, found.name)))
+    return { ok: false, code: "plan_limit" };
+  if (found.type === "expense") await setBudget(userId, found.name, budget);
   return { ok: true, value: { id } };
 }
 
-/** Points everything that refers to category `from` at `to` instead. */
-async function moveReferences(userId: string, from: string, to: string, dropBudget: boolean) {
-  const db = await getDb();
-  await Promise.all([
-    db.collection("transactions").updateMany({ userId, category: from }, [
-      {
-        $set: {
-          category: to,
-          search: {
-            $replaceAll: {
-              input: "$search",
-              find: from.toLowerCase(),
-              replacement: to.toLowerCase(),
-            },
-          },
-        },
-      },
-    ]),
-    db.collection("recurring").updateMany({ userId, category: from }, { $set: { category: to } }),
-    dropBudget
-      ? db.collection("budgets").deleteMany({ userId, category: from })
-      : db.collection("budgets").updateMany({ userId, category: from }, { $set: { category: to } }),
-  ]);
-}
-
-export async function updateCategory(
-  userId: string,
-  id: string,
-  input: CategoryInput,
-): Promise<CategoryResult<{ id: string }>> {
-  const col = await categories();
-  const found = await col.findOne({ _id: id, userId });
-  if (!found) return { ok: false, code: "not_found" };
-  const renamed = input.name !== found.name;
-  if (renamed && Object.values(FALLBACK_CATEGORY).includes(found.name as never)) {
-    return { ok: false, code: "protected" };
-  }
-  try {
-    await col.updateOne(
-      { _id: id, userId },
-      { $set: { name: input.name, nameKey: keyOf(input.name), tone: input.tone } },
-    );
-  } catch (error) {
-    if (isDuplicateKey(error)) return { ok: false, code: "duplicate" };
-    throw error;
-  }
-  if (renamed) await moveReferences(userId, found.name, input.name, false);
-  if (found.type === "expense") await setBudget(userId, input.name, input.budget);
-  return { ok: true, value: { id } };
-}
-
-/** The "Other" category for a type, created if the user doesn't have it. Returns its name. */
-export async function ensureFallback(userId: string, type: TransactionType): Promise<string> {
-  const col = await categories();
-  const name = FALLBACK_CATEGORY[type];
-  if (!(await col.findOne({ userId, nameKey: keyOf(name) }))) {
-    await col
-      .insertOne({
-        _id: randomUUID(),
-        userId,
-        name,
-        nameKey: keyOf(name),
-        type,
-        tone: "slate",
-        order: 1000,
-        createdAt: new Date(),
-      })
-      .catch((error) => {
-        if (!isDuplicateKey(error)) throw error;
-      });
-  }
-  return name;
-}
-
-/**
- * Deletes a category. Its transactions and recurring payments move to the fallback "Other"
- * category; its budget is removed.
- */
-export async function deleteCategory(
-  userId: string,
-  id: string,
-): Promise<CategoryResult<{ movedTo: string }>> {
-  const col = await categories();
-  const found = await col.findOne({ _id: id, userId });
-  if (!found) return { ok: false, code: "not_found" };
-  if (Object.values(FALLBACK_CATEGORY).includes(found.name as never)) {
-    return { ok: false, code: "protected" };
-  }
-  const fallback = await ensureFallback(userId, found.type);
-  await moveReferences(userId, found.name, fallback, true);
-  await col.deleteOne({ _id: id, userId });
-  return { ok: true, value: { movedTo: fallback } };
+/** The "Other" category an import falls back to. It is part of the admin's category set, so nothing is created here. */
+export async function ensureFallback(_userId: string, type: TransactionType): Promise<string> {
+  return FALLBACK_CATEGORY[type];
 }

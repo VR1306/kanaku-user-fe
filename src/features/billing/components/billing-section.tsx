@@ -1,5 +1,6 @@
 "use client";
 
+import { MODULES, type ModuleKey } from "@/constants/modules";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ const row =
 const link = "font-semibold text-link underline underline-offset-2 hover:text-brand";
 
 /** Settings > Plan & billing: the current plan, how it's paid for, and the receipts. */
-export function BillingSection() {
+export function BillingSection({ lockedModule }: { lockedModule?: ModuleKey }) {
   const { data, error, reload } = useBilling();
   const { formatDate } = usePreferences();
   const [history, setHistory] = useState(false);
@@ -77,6 +78,15 @@ export function BillingSection() {
 
   return (
     <SectionShell title="Plan & billing">
+      {lockedModule && !paid ? (
+        <p
+          role="status"
+          className="mb-4 rounded-control bg-accent-tint px-4 py-3 text-sm font-semibold text-ink"
+        >
+          {MODULES[lockedModule].label} isn&apos;t included in your {sub.planName} plan. Upgrade to
+          unlock it.
+        </p>
+      ) : null}
       {justPaid && paid ? (
         <p
           role="status"

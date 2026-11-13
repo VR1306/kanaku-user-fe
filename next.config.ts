@@ -24,6 +24,9 @@ const corsHeaders =
     : [];
 
 const nextConfig: NextConfig = {
+  // These two are read by client components too. Without `env` the browser bundle sees them as empty while the
+  // server sees the real value, so server-rendered links (/api/...) and client ones differ → hydration errors.
+  env: { NEXT_APP_URL: appUrl, NEXT_API_URL: apiUrl },
   async headers() {
     return corsHeaders;
   },

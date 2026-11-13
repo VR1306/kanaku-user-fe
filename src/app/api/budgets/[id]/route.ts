@@ -1,3 +1,4 @@
+import { moduleBlocked } from "@/lib/module-guard";
 import type { NextRequest } from "next/server";
 import { budgetInputSchema } from "@/features/budgets/schemas";
 import { apiError, apiOk } from "@/lib/api-response";
@@ -13,6 +14,8 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/budget
   if (!isSameOrigin(request)) return apiError(403, "forbidden", "Request blocked.");
   const session = await getSession();
   if (!session) return unauthenticated();
+  const blocked = await moduleBlocked(session.id, "budgets");
+  if (blocked) return blocked;
 
   const body = budgetInputSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) {
@@ -37,6 +40,8 @@ export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/budge
   if (!isSameOrigin(request)) return apiError(403, "forbidden", "Request blocked.");
   const session = await getSession();
   if (!session) return unauthenticated();
+  const blocked = await moduleBlocked(session.id, "budgets");
+  if (blocked) return blocked;
   const { id } = await ctx.params;
   const existing = (await getBudgets(session.id)).items.find((b) => b.id === id);
   if (!(await deleteBudget(session.id, id))) return notFound();

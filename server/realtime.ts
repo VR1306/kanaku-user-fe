@@ -11,6 +11,7 @@
  */
 import { createServer } from "node:http";
 import { Server } from "socket.io";
+import { notificationImageUrl } from "@/constants/notification-image";
 import { REALTIME_DEFAULT_PORT, SOCKET_EVENTS } from "@/constants/notifications";
 import { getDb } from "@/lib/mongo";
 import { decode } from "@/lib/token";
@@ -68,6 +69,9 @@ type NotificationChange = {
     href: string | null;
     createdAt: Date;
     read: boolean;
+    announcementId?: string;
+    imageAlt?: string;
+    ctaLabel?: string;
   };
 };
 
@@ -87,6 +91,11 @@ async function watchNotifications() {
         href: doc.href,
         createdAt: new Date(doc.createdAt).toISOString(),
         read: doc.read,
+        image:
+          doc.announcementId && doc.imageAlt
+            ? { url: notificationImageUrl(doc._id), alt: doc.imageAlt }
+            : null,
+        ctaLabel: doc.ctaLabel ?? null,
       });
     } else if (change.operationType === "update" || change.operationType === "replace") {
       io.to(room(doc.userId)).emit(SOCKET_EVENTS.changed, { id: doc._id, read: doc.read });

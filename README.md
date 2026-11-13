@@ -68,3 +68,15 @@ redeploy. Browsers connect with a short-lived token from `/api/realtime/token`, 
 
 Auth (with authenticator two-step), onboarding, transactions, budgets, categories, recurring payments, reports,
 notifications (with realtime), settings, billing (Razorpay), help & support, and e-mail are built on MongoDB.
+
+## Admin Portal integration
+
+Categories, plans/prices/GST and coupons are owned by the Kanaku Admin Portal (`ADMIN_API_URL`). This app reads them (`/api/v1/public/*`) and calls server-to-server endpoints with `SERVICE_API_KEY` (identical in both apps):
+
+- **Categories** are read-only here: `POST/DELETE /api/categories` return `403 managed_by_admin`; users can only set their own monthly budget.
+- **Billing**: `/api/billing` and `/api/billing/quote` price Pro from the admin's plans; coupons are validated by the admin. Successful payments are reported to it (revenue, coupon usage).
+- **Support chat**: `src/services/tickets-service.ts` talks to the admin's support API; live updates, typing and read receipts come from the realtime service (`NEXT_PUBLIC_CHAT_URL`, token from `/api/realtime/chat-token`, signed with the shared `REALTIME_SECRET`).
+- **Announcements** arrive at `POST /api/integrations/admin/notifications` and appear in the notification centre in real time. Consent lives in Settings → Preferences (SMS is opt-in).
+- **User sync**: users are mirrored to the admin on verification, profile/consent change and payment. Run `npm run backfill:admin` once for users that existed before the integration.
+
+API docs: `{admin origin}/docs/user`. Env: `ADMIN_API_URL`, `SERVICE_API_KEY`, `REALTIME_SECRET`, `NEXT_PUBLIC_CHAT_URL` (see `.env.example`).

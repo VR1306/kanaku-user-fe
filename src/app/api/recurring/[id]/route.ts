@@ -1,3 +1,4 @@
+import { moduleBlocked } from "@/lib/module-guard";
 import type { NextRequest } from "next/server";
 import { recurringInputSchema, recurringPatchSchema } from "@/features/recurring/schemas";
 import { apiError, apiOk } from "@/lib/api-response";
@@ -21,6 +22,8 @@ export async function PUT(request: NextRequest, ctx: RouteContext<"/api/recurrin
   if (!isSameOrigin(request)) return apiError(403, "forbidden", "Request blocked.");
   const session = await getSession();
   if (!session) return unauthenticated();
+  const blocked = await moduleBlocked(session.id, "recurring");
+  if (blocked) return blocked;
 
   const body = recurringInputSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) {
@@ -50,6 +53,8 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/recurr
   if (!isSameOrigin(request)) return apiError(403, "forbidden", "Request blocked.");
   const session = await getSession();
   if (!session) return unauthenticated();
+  const blocked = await moduleBlocked(session.id, "recurring");
+  if (blocked) return blocked;
 
   const body = recurringPatchSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return apiError(400, "invalid_body", "Say whether it should be active.");
@@ -70,6 +75,8 @@ export async function DELETE(request: NextRequest, ctx: RouteContext<"/api/recur
   if (!isSameOrigin(request)) return apiError(403, "forbidden", "Request blocked.");
   const session = await getSession();
   if (!session) return unauthenticated();
+  const blocked = await moduleBlocked(session.id, "recurring");
+  if (blocked) return blocked;
   const { id } = await ctx.params;
   const before = (await listRecurring(session.id)).items.find((i) => i.id === id);
   if (!(await deleteRecurring(session.id, id))) return notFound();

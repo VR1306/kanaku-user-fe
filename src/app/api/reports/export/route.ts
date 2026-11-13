@@ -1,3 +1,4 @@
+import { moduleBlocked } from "@/lib/module-guard";
 import type { NextRequest } from "next/server";
 import { reportQuerySchema } from "@/features/reports/schemas";
 import { apiError } from "@/lib/api-response";
@@ -8,6 +9,8 @@ import { getReport } from "@/services/reports-service";
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) return apiError(401, "unauthenticated", "Please log in to continue.");
+  const blocked = await moduleBlocked(session.id, "exports");
+  if (blocked) return blocked;
   const parsed = reportQuerySchema.safeParse({
     range: request.nextUrl.searchParams.get("range") ?? undefined,
   });

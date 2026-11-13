@@ -8,15 +8,8 @@
  * - billing_payments: one per successful payment (the invoice list).
  * - coupons: { _id: "DIWALI26", label, percentOff, active, expiresAt? }. Create these by hand.
  */
-import {
-  BILLING_CURRENCY,
-  GST_PERCENT,
-  PLANS,
-  YEARLY_SAVE_PERCENT,
-  planPricePaise,
-  type BillingInterval,
-} from "@/constants/billing";
-import type { Billing, CheckoutSession, Quote, SubscriptionInfo } from "@/features/billing/schemas";
+import { BILLING_CURRENCY, GST_PERCENT, PLANS, type BillingInterval } from "@/constants/billing";
+import type { Billing, CheckoutSession, SubscriptionInfo } from "@/features/billing/schemas";
 import { getDb, isDuplicateKey } from "@/lib/mongo";
 import {
   RazorpayError,
@@ -30,6 +23,10 @@ import {
   type RzpPayment,
 } from "@/lib/razorpay";
 import { randomBytes } from "node:crypto";
+import { recordPayment } from "./admin-sync";
+import { clearEntitlements } from "./entitlements-service";
+import { BillingError } from "./billing-errors";
+import { adminPlans, getQuote, paise, yearlySave } from "./billing-pricing";
 import { notifyPurchase } from "./notification-events";
 
 const MIN_AMOUNT_PAISE = 100;
@@ -66,22 +63,6 @@ type PaymentDoc = {
   description: string;
   paidAt: Date;
 };
-type CouponDoc = {
-  _id: string;
-  label: string;
-  percentOff: number;
-  active: boolean;
-  expiresAt?: Date;
-};
-
-export class BillingError extends Error {
-  constructor(
-    message: string,
-    readonly code: "invalid_coupon" | "invalid_signature" | "not_found" | "unavailable",
-  ) {
-    super(message);
-  }
-}
 
 async function cols() {
   const db = await getDb();
@@ -89,7 +70,6 @@ async function cols() {
     orders: db.collection<OrderDoc>("billing_orders"),
     subs: db.collection<SubscriptionDoc>("subscriptions"),
     payments: db.collection<PaymentDoc>("billing_payments"),
-    coupons: db.collection<CouponDoc>("coupons"),
   };
 }
 
@@ -104,39 +84,6 @@ function addPeriod(date: Date, interval: BillingInterval): Date {
   return new Date(
     Date.UTC(y, m, Math.min(date.getUTCDate(), last), date.getUTCHours(), date.getUTCMinutes()),
   );
-}
-
-// ---- Pricing ----
-
-async function findCoupon(code: string): Promise<CouponDoc> {
-  const { coupons } = await cols();
-  const found = await coupons.findOne({ _id: code.trim().toUpperCase(), active: true });
-  if (!found || (found.expiresAt && found.expiresAt.getTime() < Date.now())) {
-    throw new BillingError("That coupon code isn't valid.", "invalid_coupon");
-  }
-  return found;
-}
-
-export async function getQuote(interval: BillingInterval, couponCode?: string): Promise<Quote> {
-  const basePaise = planPricePaise("pro", interval);
-  const gstPaise = Math.round((basePaise * GST_PERCENT) / 100);
-  let coupon: Quote["coupon"] = null;
-  let discountPaise = 0;
-  if (couponCode) {
-    const found = await findCoupon(couponCode);
-    coupon = { code: found._id, label: found.label, percentOff: found.percentOff };
-    discountPaise = Math.round(((basePaise + gstPaise) * found.percentOff) / 100);
-  }
-  return {
-    planId: "pro",
-    interval,
-    basePaise,
-    gstPercent: GST_PERCENT,
-    gstPaise,
-    discountPaise,
-    totalPaise: basePaise + gstPaise - discountPaise,
-    coupon,
-  };
 }
 
 // ---- Reading ----
@@ -172,22 +119,26 @@ function toInfo(sub: SubscriptionDoc | null): SubscriptionInfo {
 
 export async function getBilling(userId: string, now = new Date()): Promise<Billing> {
   const { payments } = await cols();
-  const [sub, paid] = await Promise.all([
+  const [sub, paid, livePlans] = await Promise.all([
     activePeriod(userId, now),
     payments.find({ userId }).sort({ paidAt: -1 }).limit(50).toArray(),
+    adminPlans(),
   ]);
+  const gst = livePlans.find((p) => p.key === "pro")?.gstPct ?? GST_PERCENT;
   return {
     configured: isRazorpayConfigured(),
     currency: BILLING_CURRENCY,
-    gstPercent: GST_PERCENT,
-    yearlySavePercent: YEARLY_SAVE_PERCENT,
-    plans: (["starter", "pro"] as const).map((id) => ({
-      id,
-      name: PLANS[id].name,
-      features: [...PLANS[id].features],
-      monthlyPaise: planPricePaise(id, "monthly"),
-      yearlyPaise: planPricePaise(id, "yearly"),
-    })),
+    gstPercent: gst,
+    yearlySavePercent: yearlySave(livePlans),
+    plans: [...livePlans]
+      .sort((a, b) => (a.monthly ?? 0) - (b.monthly ?? 0))
+      .map((p) => ({
+        id: p.key as "starter" | "pro",
+        name: p.name,
+        features: p.features,
+        monthlyPaise: paise(p.monthly),
+        yearlyPaise: paise(p.yearly),
+      })),
     subscription: toInfo(sub),
     invoices: paid.map((p) => ({
       id: p._id,
@@ -218,7 +169,7 @@ export async function startCheckout(
   interval: BillingInterval,
   couponCode?: string,
 ): Promise<CheckoutSession> {
-  const quote = await getQuote(interval, couponCode);
+  const quote = await getQuote(interval, couponCode, userId);
   if (quote.totalPaise < MIN_AMOUNT_PAISE) {
     throw new BillingError("The amount is too small to charge.", "unavailable");
   }
@@ -317,6 +268,18 @@ async function applyPaidOrder(orderId: string, paymentId: string, payment: RzpPa
       if (!isDuplicateKey(e)) throw e;
     });
 
+  clearEntitlements(); // the new plan's modules apply at once
+
+  // Report the payment to the Admin Portal (revenue, invoices, coupon usage) and refresh the user's plan there.
+  recordPayment({
+    id: paymentId,
+    userId: order.userId,
+    plan: description(order.interval),
+    amountPaise: order.amountPaise,
+    method,
+    couponCode: order.couponCode,
+  });
+
   // Tell the user about the purchase (and e-mail the receipt).
   await notifyPurchase(order.userId, {
     paymentId,
@@ -371,3 +334,6 @@ export async function handleWebhook(body: WebhookPayload): Promise<string> {
 }
 
 export { RazorpayError };
+
+export { BillingError, getQuote };
+export { listOffers } from "./billing-pricing";

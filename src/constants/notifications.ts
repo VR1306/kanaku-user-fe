@@ -16,6 +16,7 @@ export const NOTIFICATION_KINDS = [
   "security",
   "data",
   "support",
+  "announcement",
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
@@ -45,6 +46,7 @@ export const NOTIFICATION_STYLE: Record<
   security: { icon: "shield", tone: "danger" },
   data: { icon: "upload", tone: "brand" },
   support: { icon: "help", tone: "brand" },
+  announcement: { icon: "notifications", tone: "accent" },
 };
 
 /** Most notifications returned in one list. */

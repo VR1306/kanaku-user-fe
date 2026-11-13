@@ -1,3 +1,4 @@
+import { moduleBlocked } from "@/lib/module-guard";
 import type { NextRequest } from "next/server";
 import { impactQuerySchema } from "@/features/transactions/schemas";
 import { apiError, apiOk } from "@/lib/api-response";
@@ -8,6 +9,8 @@ import { transactionImpact } from "@/services/budgets-service";
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) return apiError(401, "unauthenticated", "Please log in to continue.");
+  const blocked = await moduleBlocked(session.id, "transactions");
+  if (blocked) return blocked;
   const p = request.nextUrl.searchParams;
   const parsed = impactQuerySchema.safeParse({
     type: p.get("type") ?? undefined,

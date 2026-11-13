@@ -63,6 +63,8 @@ export function PreferencesSection({ data, onSaved }: { data: SettingsData; onSa
   const [budgetAlerts, setBudgetAlerts] = useState(p.emailBudgetAlerts);
   const [billReminders, setBillReminders] = useState(p.emailBillReminders);
   const [monthlyReport, setMonthlyReport] = useState(p.emailMonthlyReport);
+  const [emailAnn, setEmailAnn] = useState(p.emailAnnouncements);
+  const [smsAnn, setSmsAnn] = useState(p.smsAnnouncements);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
 
@@ -76,6 +78,8 @@ export function PreferencesSection({ data, onSaved }: { data: SettingsData; onSa
         emailBudgetAlerts: budgetAlerts,
         emailBillReminders: billReminders,
         emailMonthlyReport: monthlyReport,
+        emailAnnouncements: emailAnn,
+        smsAnnouncements: smsAnn,
       });
       applyThemeChoice(theme); // the theme is remembered on this device
       setStatus({ tone: "success", text: "Saved" });
@@ -142,6 +146,16 @@ export function PreferencesSection({ data, onSaved }: { data: SettingsData; onSa
               label="Monthly report summary"
               checked={monthlyReport}
               onChange={setMonthlyReport}
+            />
+            <Toggle
+              label="Announcements and offers by email"
+              checked={emailAnn}
+              onChange={setEmailAnn}
+            />
+            <Toggle
+              label="Announcements by SMS (to your phone number)"
+              checked={smsAnn}
+              onChange={setSmsAnn}
             />
           </div>
           <p className="mt-2 text-xs text-muted">

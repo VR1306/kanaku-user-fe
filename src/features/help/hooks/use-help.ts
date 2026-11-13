@@ -30,16 +30,24 @@ export function useArticles(query: string, topic?: HelpTopic) {
 /** The signed-in user's tickets. */
 export function useTickets() {
   const [tickets, setTickets] = useState<TicketSummary[]>();
+  const [error, setError] = useState<string>();
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
     fetchTickets(controller.signal)
-      .then((r) => setTickets(r.data.items))
-      .catch(() => undefined);
+      .then((r) => {
+        setTickets(r.data.items);
+        setError(undefined);
+      })
+      .catch((e: unknown) => {
+        // Never leave the skeleton spinning: show what went wrong and let the user retry.
+        if (!controller.signal.aborted)
+          setError(e instanceof Error ? e.message : "Couldn't load your tickets.");
+      });
     return () => controller.abort();
   }, [attempt]);
 
   const reload = useCallback(() => setAttempt((a) => a + 1), []);
-  return { tickets, loading: tickets === undefined, reload };
+  return { tickets, error, loading: tickets === undefined && !error, reload };
 }

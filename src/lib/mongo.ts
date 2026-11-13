@@ -17,7 +17,9 @@ function connect(): Promise<MongoClient> {
     // Fail fast (and say so) when the database can't be reached, instead of hanging the page.
     serverSelectionTimeoutMS: 5000,
     connectTimeoutMS: 5000,
-    maxPoolSize: 10,
+    // Keep a few connections open so a page's parallel queries don't each pay a fresh TLS handshake.
+    minPoolSize: 4,
+    maxPoolSize: 20,
   }).connect();
   // Don't cache a failed connection attempt.
   pending.catch(() => {

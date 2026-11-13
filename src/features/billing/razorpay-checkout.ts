@@ -16,6 +16,8 @@ type RazorpayOptions = {
   description: string;
   prefill: { name: string; email: string };
   theme: { color: string };
+  /** Which payment methods Checkout shows first, and how. */
+  config?: { display: Record<string, unknown> };
   handler: (response: RazorpaySuccess) => void;
   modal: { ondismiss: () => void };
 };
@@ -69,6 +71,31 @@ export async function openCheckout(session: CheckoutSession): Promise<CheckoutOu
       description: session.description,
       prefill: session.prefill,
       theme: { color: "#1D4ED8" },
+      // UPI first: scan a QR with any UPI app (Google Pay, PhonePe, Paytm…), enter a UPI ID, or - on a phone - open an
+      // installed app directly. Cards, net banking and wallets follow. What actually appears also depends on the methods
+      // switched on for the Razorpay account (Dashboard > Settings > Payment Methods) and on test vs live mode.
+      config: {
+        display: {
+          blocks: {
+            upi: {
+              name: "Pay with UPI",
+              instruments: [
+                {
+                  method: "upi",
+                  flows: ["qr", "collect", "intent"],
+                  apps: ["google_pay", "phonepe", "paytm"],
+                },
+              ],
+            },
+            other: {
+              name: "Cards, net banking & wallets",
+              instruments: [{ method: "card" }, { method: "netbanking" }, { method: "wallet" }],
+            },
+          },
+          sequence: ["block.upi", "block.other"],
+          preferences: { show_default_blocks: false },
+        },
+      },
       handler: (response) => resolve({ status: "paid", response }),
       modal: { ondismiss: () => resolve({ status: "dismissed" }) },
     });

@@ -1,3 +1,4 @@
+import { moduleBlocked } from "@/lib/module-guard";
 import type { NextRequest } from "next/server";
 import { idsSchema, transactionInputSchema } from "@/features/transactions/schemas";
 import { apiError, apiOk } from "@/lib/api-response";
@@ -21,6 +22,8 @@ const UNAUTHENTICATED = () => apiError(401, "unauthenticated", "Please log in to
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) return UNAUTHENTICATED();
+  const blocked = await moduleBlocked(session.id, "transactions");
+  if (blocked) return blocked;
 
   const parsed = parseTransactionsQuery(request.nextUrl.searchParams);
   if (!parsed.success) {
@@ -34,6 +37,8 @@ export async function POST(request: NextRequest) {
   if (!isSameOrigin(request)) return apiError(403, "forbidden", "Request blocked.");
   const session = await getSession();
   if (!session) return UNAUTHENTICATED();
+  const blocked = await moduleBlocked(session.id, "transactions");
+  if (blocked) return blocked;
 
   const body = transactionInputSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) {
@@ -62,6 +67,8 @@ export async function DELETE(request: NextRequest) {
   if (!isSameOrigin(request)) return apiError(403, "forbidden", "Request blocked.");
   const session = await getSession();
   if (!session) return UNAUTHENTICATED();
+  const blocked = await moduleBlocked(session.id, "transactions");
+  if (blocked) return blocked;
 
   const body = idsSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return apiError(400, "invalid_body", "Choose at least one transaction.");

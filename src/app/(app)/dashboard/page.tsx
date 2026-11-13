@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ModuleGate } from "@/components/layout/module-gate";
 import type { Metadata } from "next";
 import { DashboardSkeleton } from "@/features/dashboard/components/dashboard-skeleton";
 import { DashboardView } from "@/features/dashboard/components/dashboard-view";
@@ -15,8 +16,11 @@ async function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<DashboardSkeleton />}>
-      <DashboardContent />
-    </Suspense>
+    <>
+      <ModuleGate module="dashboard" />
+      <Suspense fallback={<DashboardSkeleton />}>
+        <DashboardContent />
+      </Suspense>
+    </>
   );
 }

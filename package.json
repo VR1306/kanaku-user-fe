@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -k -n web,realtime -c cyan,magenta \"npm:dev:web\" \"npm:realtime\"",
-    "dev:web": "next dev",
+    "dev:web": "next dev -p 3002",
     "realtime": "tsx watch --env-file=.env.local server/realtime.ts",
     "build": "next build",
     "start": "concurrently -k -n web,realtime \"next start\" \"tsx server/realtime.ts\"",
@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:lines": "node scripts/check-file-length.mjs",
-    "realtime:start": "tsx server/realtime.ts"
+    "realtime:start": "tsx server/realtime.ts",
+    "backfill:admin": "node --env-file=.env.local scripts/backfill-admin.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.5",

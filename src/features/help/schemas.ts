@@ -42,6 +42,8 @@ export const ticketSummarySchema = z.object({
   /** ISO time of the last reply from support, if any. */
   lastSupportReplyAt: z.string().nullable(),
   closedAt: z.string().nullable(),
+  /** Agent messages the user hasn't opened yet. */
+  unread: z.number().int().min(0).default(0),
 });
 export type TicketSummary = z.infer<typeof ticketSummarySchema>;
 
@@ -59,11 +61,18 @@ export const ticketMessageSchema = z.object({
       dataUrl: z.string(),
     })
     .nullable(),
+  /** Receipts: when the other side received / opened it. */
+  deliveredAt: z.string().nullable().default(null),
+  readAt: z.string().nullable().default(null),
+  /** First name of the support agent who wrote it (support messages only). */
+  author: z.string().nullable().default(null),
 });
 export type TicketMessage = z.infer<typeof ticketMessageSchema>;
 
 export const ticketDetailSchema = ticketSummarySchema.extend({
   messages: z.array(ticketMessageSchema),
+  /** The support agent handling this ticket (first name) and whether they are online right now. */
+  agent: z.object({ name: z.string(), online: z.boolean() }).nullable().default(null),
 });
 export type TicketDetail = z.infer<typeof ticketDetailSchema>;
 export const ticketsSchema = z.object({ items: z.array(ticketSummarySchema) });
@@ -127,3 +136,11 @@ export const staffReplySchema = z.object({
   message: z.string().trim().min(1).max(TICKET_MESSAGE_MAX),
   status: z.enum(["open", "pending", "resolved"]).default("open"),
 });
+
+/** Is anyone available for live chat right now? */
+export const availabilitySchema = z.object({
+  online: z.boolean(),
+  count: z.number().int().min(0),
+  agents: z.array(z.object({ name: z.string() })),
+});
+export type SupportAvailability = z.infer<typeof availabilitySchema>;

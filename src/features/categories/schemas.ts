@@ -44,6 +44,15 @@ export const categoryInputSchema = z.object({
 });
 export type CategoryInput = z.infer<typeof categoryInputSchema>;
 
+/** Request body for PUT /api/categories/:id. Users can only set their own monthly budget. */
+export const categoryBudgetSchema = z.object({
+  budget: z
+    .number()
+    .positive("Enter an amount greater than zero.")
+    .max(AMOUNT_MAX, "That amount is too large.")
+    .nullable(),
+});
+
 /** The form keeps the budget as text; empty means "no budget". */
 export const categoryFormSchema = z.object({
   name,
@@ -70,3 +79,9 @@ export const toCategoryInput = (v: CategoryFormValues): CategoryInput => ({
   tone: v.tone,
   budget: v.budget === "" ? null : Number(v.budget.replace(/,/g, "")),
 });
+
+/** The user-facing form: only the monthly budget is editable (categories are managed by the admin). */
+export const budgetFormSchema = categoryFormSchema.pick({ budget: true });
+export type BudgetFormValues = z.infer<typeof budgetFormSchema>;
+export const toBudget = (v: BudgetFormValues): number | null =>
+  v.budget === "" ? null : Number(v.budget.replace(/,/g, ""));

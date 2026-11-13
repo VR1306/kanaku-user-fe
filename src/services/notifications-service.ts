@@ -12,6 +12,7 @@ import {
   NOTIFICATIONS_LIMIT,
   type NotificationFilter,
 } from "@/constants/notifications";
+import { notificationImageUrl } from "@/constants/notification-image";
 import { ROUTES, transactionRoute } from "@/constants/routes";
 import type { AppNotification, NotificationsList } from "@/features/notifications/schemas";
 import { getDb } from "@/lib/mongo";
@@ -38,6 +39,9 @@ const toNotification = (d: NotificationDoc): AppNotification => ({
   href: d.href,
   createdAt: d.createdAt.toISOString(),
   read: d.read,
+  image:
+    d.announcementId && d.imageAlt ? { url: notificationImageUrl(d._id), alt: d.imageAlt } : null,
+  ctaLabel: d.ctaLabel ?? null,
 });
 
 const rupees = (n: number) => formatCurrency(n, "INR");

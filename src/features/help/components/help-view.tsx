@@ -10,6 +10,7 @@ import { FOCUS_FIELD } from "@/constants/styles";
 import { ROUTES } from "@/constants/routes";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { cn } from "@/utils/cn";
+import { useChatSocket } from "../hooks/use-chat-socket";
 import { useArticles, useTickets } from "../hooks/use-help";
 import { ContactForm } from "./contact-form";
 import { ArticleDrawer, ArticleList } from "./help-articles";
@@ -31,7 +32,8 @@ export function HelpView() {
   const [contact, setContact] = useState({ topic: "getting-started", nonce: 0 });
   const search = useDebouncedValue(query.trim(), 250);
   const { items, loading, active } = useArticles(search, topic);
-  const { tickets, loading: ticketsLoading, reload } = useTickets();
+  const { tickets, error: ticketsError, loading: ticketsLoading, reload } = useTickets();
+  useChatSocket({ "chat:updated": reload }, reload); // new replies / status changes show up instantly
   const now = useSyncExternalStore(subscribe, minute, () => 0);
   const topicLabel = HELP_TOPICS.find((t) => t.value === topic)?.label;
 
@@ -139,7 +141,14 @@ export function HelpView() {
         <div id="contact-support">
           <ContactForm key={contact.nonce} topic={contact.topic} onCreated={reload} />
         </div>
-        <TicketsPanel tickets={tickets} loading={ticketsLoading} now={now} onOpen={setTicketId} />
+        <TicketsPanel
+          tickets={tickets}
+          loading={ticketsLoading}
+          error={ticketsError}
+          onRetry={reload}
+          now={now}
+          onOpen={setTicketId}
+        />
       </div>
 
       <ArticleDrawer slug={article} onClose={() => setArticle(null)} onContact={contactAbout} />

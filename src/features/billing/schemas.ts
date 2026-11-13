@@ -63,6 +63,17 @@ export const quoteSchema = z.object({
 });
 export type Quote = z.infer<typeof quoteSchema>;
 
+/** A coupon the Kanaku team chose to show at checkout. */
+export const offerSchema = z.object({
+  code: z.string(),
+  label: z.string(),
+  validUntil: z.string().nullable(),
+  /** Rupees off the price before GST, for the selected billing period. */
+  discount: z.number(),
+});
+export const offersSchema = z.object({ items: z.array(offerSchema) });
+export type Offer = z.infer<typeof offerSchema>;
+
 export const quoteQuerySchema = z.object({
   interval,
   coupon: z.string().trim().max(30).optional(),

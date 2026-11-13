@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SETTINGS_SECTIONS, type SettingsSection } from "@/constants/settings";
 import { cn } from "@/utils/cn";
 import { useSettings } from "../hooks/use-settings";
+import type { ModuleKey } from "@/constants/modules";
 import { BillingSection } from "@/features/billing/components/billing-section";
 import { DataSection } from "./data-section";
 import { PreferencesSection } from "./preferences-section";
@@ -18,7 +19,14 @@ import { SecuritySection } from "./security-section";
 const navItem =
   "flex h-[46px] w-full items-center rounded-[12px] px-4 text-left text-[15px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
-export function SettingsView({ initialSection }: { initialSection: SettingsSection }) {
+export function SettingsView({
+  initialSection,
+  lockedModule,
+}: {
+  initialSection: SettingsSection;
+  /** A module the customer tried to open that their plan doesn't include. */
+  lockedModule?: ModuleKey;
+}) {
   const [section, setSection] = useState<SettingsSection>(initialSection);
   const { data, error, reload } = useSettings();
 
@@ -77,7 +85,7 @@ export function SettingsView({ initialSection }: { initialSection: SettingsSecti
           ) : section === "security" ? (
             <SecuritySection data={data} onSaved={reload} />
           ) : section === "billing" ? (
-            <BillingSection />
+            <BillingSection lockedModule={lockedModule} />
           ) : (
             <DataSection onChanged={reload} />
           )}

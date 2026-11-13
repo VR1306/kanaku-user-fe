@@ -55,6 +55,20 @@ function Row({
         <span className="min-w-0 flex-1">
           <span className="block text-base font-bold text-ink">{item.title}</span>
           <span className="mt-1 block text-sm text-muted">{item.body}</span>
+          {item.image ? (
+            // eslint-disable-next-line @next/next/no-img-element -- served by our own authenticated route; size is the admin's upload
+            <img
+              src={item.image.url}
+              alt={item.image.alt}
+              loading="lazy"
+              className="mt-3 max-h-64 w-full max-w-md rounded-[14px] border border-line-soft object-cover"
+            />
+          ) : null}
+          {item.ctaLabel && item.href ? (
+            <span className="mt-3 inline-block rounded-control border border-line-strong px-3.5 py-2 text-sm font-semibold text-link">
+              {item.ctaLabel}
+            </span>
+          ) : null}
         </span>
         <span className="flex shrink-0 flex-col items-end gap-3 pt-0.5">
           <span className="text-[13px] whitespace-nowrap text-muted">

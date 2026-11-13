@@ -1,9 +1,11 @@
+import { z } from "zod";
 import { API_ROUTES } from "@/constants/api";
 import type { HelpTopic } from "@/constants/help";
 import { apiGet, apiSend } from "@/services/api-client";
 import {
   articleSchema,
   articlesSchema,
+  availabilitySchema,
   ticketDetailSchema,
   ticketsSchema,
   type AttachmentInput,
@@ -30,5 +32,10 @@ export const replyToTicket = (id: string, message: string, attachment: Attachmen
     message,
     attachment,
   });
+export const markTicketRead = (id: string) =>
+  apiSend("POST", `${tickets}/${encodeURIComponent(id)}/read`, z.object({ ok: z.literal(true) }));
 export const resolveTicket = (id: string) =>
   apiSend("POST", `${tickets}/${encodeURIComponent(id)}/resolve`, ticketDetailSchema);
+
+export const fetchAvailability = (signal?: AbortSignal) =>
+  apiGet(`${API_ROUTES.support}/availability`, availabilitySchema, signal);

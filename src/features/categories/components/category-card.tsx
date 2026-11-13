@@ -14,13 +14,12 @@ type Props = {
   currency: string;
   editing: boolean;
   onEdit: () => void;
-  onDelete: () => void;
 };
 
 const iconButton =
   "grid size-10 place-items-center rounded-[10px] bg-page transition-colors hover:bg-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40";
 
-export function CategoryCard({ item, index, currency, editing, onEdit, onDelete }: Props) {
+export function CategoryCard({ item, index, currency, editing, onEdit }: Props) {
   return (
     <motion.article
       layout="position"
@@ -42,26 +41,17 @@ export function CategoryCard({ item, index, currency, editing, onEdit, onDelete 
         >
           {item.name.charAt(0).toUpperCase()}
         </span>
-        <div className="flex gap-1">
+        {item.type === "expense" ? (
           <button
             type="button"
             onClick={onEdit}
-            aria-label={`Edit ${item.name}`}
+            aria-label={`Set budget for ${item.name}`}
+            title="Set your monthly budget"
             className={cn(iconButton, "text-link")}
           >
             <Icon name="edit" size={16} strokeWidth={2} />
           </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            disabled={item.fallback}
-            aria-label={`Delete ${item.name}`}
-            title={item.fallback ? "This is the fallback category and can't be deleted" : undefined}
-            className={cn(iconButton, "text-danger")}
-          >
-            <Icon name="trash" size={16} strokeWidth={2} />
-          </button>
-        </div>
+        ) : null}
       </div>
       <h3 className="mt-5 text-[17px] font-bold break-words text-ink">{item.name}</h3>
       <p className="mt-1 text-[13px] text-muted">
